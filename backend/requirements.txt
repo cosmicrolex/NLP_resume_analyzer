@@ -1,3 +1,6 @@
+setuptools>=65
+wheel
+
 # Core FastAPI and server dependencies (Python 3.11 compatible)
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
