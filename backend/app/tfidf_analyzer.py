@@ -146,33 +146,26 @@ def get_resume_strengths_weaknesses(resume_text, tfidf_scores):
 def analyze_job_description_with_tfidf(job_description_text):
     try:
         print(f"DEBUG - Original job desc text length: {len(job_description_text)}")
-        processed_text = preprocess_text(job_description_text)
-        print(f"DEBUG - Processed job desc text length: {len(processed_text)}")
-        
-        if not processed_text.strip():
-            return {"error": "No valid text extracted for TF-IDF analysis"}
 
-        vectorizer = TfidfVectorizer(
-            max_features=50,
-            ngram_range=(1, 2),
-            min_df=1,
-            max_df=1.0,
-            stop_words=None,
-            token_pattern=r'\b[a-zA-Z][a-zA-Z0-9]*\b'
-        )
-        
-        tfidf_matrix = vectorizer.fit_transform([processed_text])
-        feature_names = vectorizer.get_feature_names_out()
-        tfidf_scores = tfidf_matrix.toarray()[0]
-        
-        print(f"DEBUG - Job desc features found: {len(feature_names)}")
-        print(f"DEBUG - Top job desc features: {feature_names[:10]}")
-        
-        keyword_scores = {feature_names[i]: tfidf_scores[i] for i in range(len(feature_names))}
-        top_keywords = sorted(keyword_scores.items(), key=lambda x: x[1], reverse=True)[:15]
-        
+        # Initialize our custom TF-IDF analyzer
+        tfidf_analyzer = SimpleTFIDF()
+
+        # Get top keywords using our custom implementation
+        keyword_scores = tfidf_analyzer.get_top_keywords(job_description_text, top_n=20)
+
+        print(f"DEBUG - Job desc features found: {len(keyword_scores)}")
+        print(f"DEBUG - Top job desc features: {list(keyword_scores.keys())[:10]}")
+
+        # Prepare top keywords for display
+        top_keywords = []
+        for term, score in keyword_scores.items():
+            top_keywords.append({
+                "term": term,
+                "score": round(score, 4)
+            })
+
         return {
-            "top_keywords": [{"term": term, "score": round(score, 4)} for term, score in top_keywords if score > 0]
+            "top_keywords": top_keywords
         }
     except Exception as e:
         print(f"DEBUG - Job desc analysis error: {str(e)}")
