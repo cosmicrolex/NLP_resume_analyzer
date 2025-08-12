@@ -6,7 +6,7 @@ from nltk.tokenize import word_tokenize
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from .simple_tfidf import SimpleTFIDF
+from simple_tfidf import SimpleTFIDF
 
 # Load environment variables from root directory
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
