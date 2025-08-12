@@ -2,9 +2,9 @@ services:
   # Backend API Service
   - type: web
     name: ai-job-assistant-backend
-    runtime: python3
+    runtime: python
     buildCommand: |
-      cd backend && chmod +x build.sh && ./build.sh
+      cd backend && pip install -r requirements.txt && python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)" && mkdir -p utils/output
     startCommand: |
       cd backend/app && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -14,17 +14,16 @@ services:
         sync: false
       - key: PYTHONPATH
         value: /opt/render/project/src
-    healthCheckPath: /
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    healthCheckPath: /health
     plan: free
     region: oregon
-    scaling:
-      minInstances: 1
-      maxInstances: 1
 
   # Frontend Streamlit Service
   - type: web
     name: ai-job-assistant-frontend
-    runtime: python3
+    runtime: python
     buildCommand: |
       pip install -r requirements.txt
     startCommand: |
@@ -34,11 +33,10 @@ services:
         value: https://ai-job-assistant-backend.onrender.com
       - key: PYTHONPATH
         value: /opt/render/project/src
+      - key: PYTHONUNBUFFERED
+        value: "1"
     plan: free
     region: oregon
-    scaling:
-      minInstances: 1
-      maxInstances: 1
 # Database (if needed in future)
 # databases:
 #   - name: ai-job-assistant-db
