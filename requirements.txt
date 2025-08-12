@@ -2,10 +2,10 @@
 streamlit==1.28.1
 requests==2.31.0
 
-# Data visualization
+# Data visualization (stable versions with pre-compiled wheels)
 altair==5.1.2
-pandas==2.1.4
-numpy==1.24.3
+pandas==2.0.3
+numpy==1.25.2
 
 # Additional utilities
 python-dateutil==2.8.2

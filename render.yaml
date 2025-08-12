@@ -3,10 +3,11 @@ services:
   - type: web
     name: ai-job-assistant-backend
     runtime: python
+    rootDir: backend
     buildCommand: |
-      cd backend && pip install -r requirements.txt && python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)" && mkdir -p utils/output
+      pip install --upgrade pip && pip install --only-binary=all -r requirements.txt && python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)" && mkdir -p utils/output
     startCommand: |
-      cd backend/app && uvicorn main:app --host 0.0.0.0 --port $PORT
+      cd app && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GROQ_API_KEY
         sync: false
@@ -25,7 +26,7 @@ services:
     name: ai-job-assistant-frontend
     runtime: python
     buildCommand: |
-      pip install -r requirements.txt
+      pip install --upgrade pip && pip install --only-binary=all -r requirements.txt
     startCommand: |
       streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false
     envVars:
