@@ -4,9 +4,7 @@ services:
     name: ai-job-assistant-backend
     runtime: python
     rootDir: backend
-    build:
-      environment:
-        pythonVersion: 3.11
+    pythonVersion: 3.11
     buildCommand: |
       pip install --upgrade pip && pip install -r requirements.txt && python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)" && mkdir -p utils/output
     startCommand: |
@@ -28,9 +26,7 @@ services:
   - type: web
     name: ai-job-assistant-frontend
     runtime: python
-    build:
-      environment:
-        pythonVersion: 3.11
+    pythonVersion: 3.11
     buildCommand: |
       pip install --upgrade pip && pip install -r requirements.txt
     startCommand: |
