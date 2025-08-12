@@ -3,11 +3,10 @@ import json
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
+from .simple_tfidf import SimpleTFIDF
 
 # Load environment variables from root directory
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
@@ -62,31 +61,24 @@ def preprocess_text(text):
 def analyze_resume_with_tfidf(resume_text):
     try:
         print(f"DEBUG - Original resume text length: {len(resume_text)}")
-        processed_text = preprocess_text(resume_text)
-        print(f"DEBUG - Processed resume text length: {len(processed_text)}")
-        
-        if not processed_text.strip():
-            return {"error": "No valid text extracted for TF-IDF analysis"}
 
-        vectorizer = TfidfVectorizer(
-            max_features=50,
-            ngram_range=(1, 2),
-            min_df=1,
-            max_df=1.0,
-            stop_words=None,
-            token_pattern=r'\b[a-zA-Z][a-zA-Z0-9]*\b'
-        )
-        
-        tfidf_matrix = vectorizer.fit_transform([processed_text])
-        feature_names = vectorizer.get_feature_names_out()
-        tfidf_scores = tfidf_matrix.toarray()[0]
-        
-        print(f"DEBUG - Resume features found: {len(feature_names)}")
-        print(f"DEBUG - Top resume features: {feature_names[:10]}")
-        
-        keyword_scores = {feature_names[i]: tfidf_scores[i] for i in range(len(feature_names))}
-        top_keywords = sorted(keyword_scores.items(), key=lambda x: x[1], reverse=True)[:15]
-        
+        # Initialize our custom TF-IDF analyzer
+        tfidf_analyzer = SimpleTFIDF()
+
+        # Get top keywords using our custom implementation
+        keyword_scores = tfidf_analyzer.get_top_keywords(resume_text, top_n=20)
+
+        print(f"DEBUG - Resume features found: {len(keyword_scores)}")
+        print(f"DEBUG - Top resume features: {list(keyword_scores.keys())[:10]}")
+
+        # Prepare top keywords for display
+        top_keywords = []
+        for term, score in keyword_scores.items():
+            top_keywords.append({
+                "term": term,
+                "score": round(score, 4)
+            })
+
         # LLM analysis for strengths and weaknesses
         llm_analysis = None
         if os.getenv("GROQ_API_KEY"):
@@ -98,9 +90,9 @@ def analyze_resume_with_tfidf(resume_text):
                 import traceback
                 print(f"DEBUG - Full traceback: {traceback.format_exc()}")
                 llm_analysis = {"error": f"LLM analysis failed: {str(e)}"}
-        
+
         return {
-            "top_keywords": [{"term": term, "score": round(score, 4)} for term, score in top_keywords if score > 0],
+            "top_keywords": top_keywords,
             "llm_strengths_weaknesses": llm_analysis
         }
     except Exception as e:
@@ -189,57 +181,23 @@ def analyze_job_description_with_tfidf(job_description_text):
 def calculate_resume_job_similarity(resume_text, job_description_text):
     try:
         print("DEBUG - Starting similarity calculation...")
-        processed_resume = preprocess_text(resume_text)
-        processed_job_desc = preprocess_text(job_description_text)
-        
-        print(f"DEBUG - Processed resume length: {len(processed_resume)}")
-        print(f"DEBUG - Processed job desc length: {len(processed_job_desc)}")
-        
-        if not processed_resume.strip() or not processed_job_desc.strip():
-            return {"error": "One or both texts are empty after preprocessing"}
 
-        vectorizer = TfidfVectorizer(
-            max_features=100,
-            ngram_range=(1, 2),
-            min_df=1,
-            max_df=1.0,
-            stop_words=None,
-            token_pattern=r'\b[a-zA-Z][a-zA-Z0-9]*\b'
-        )
-        
-        # Combine texts for vectorization
-        combined_texts = [processed_resume, processed_job_desc]
-        tfidf_matrix = vectorizer.fit_transform(combined_texts)
-        
-        feature_names = vectorizer.get_feature_names_out()
-        print(f"DEBUG - Total features in similarity: {len(feature_names)}")
-        print(f"DEBUG - Sample features: {feature_names[:10]}")
-        
-        # Calculate cosine similarity
-        similarity_matrix = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])
-        similarity_score = similarity_matrix[0][0]
-        
+        if not resume_text.strip() or not job_description_text.strip():
+            return {"error": "One or both texts are empty"}
+
+        # Initialize our custom TF-IDF analyzer
+        tfidf_analyzer = SimpleTFIDF()
+
+        # Compare documents using our custom implementation
+        similarity_result = tfidf_analyzer.compare_documents(resume_text, job_description_text)
+
+        similarity_score = similarity_result["similarity_score"]
+        common_keywords = similarity_result["common_keywords"]
+
         print(f"DEBUG - Raw similarity score: {similarity_score}")
-        
-        # Get feature analysis
-        resume_scores = tfidf_matrix[0].toarray()[0]
-        job_desc_scores = tfidf_matrix[1].toarray()[0]
-        
-        # Find common terms with detailed debugging
-        common_terms = []
-        for i, feature in enumerate(feature_names):
-            if resume_scores[i] > 0 and job_desc_scores[i] > 0:
-                common_terms.append({
-                    "term": feature,
-                    "resume_score": round(resume_scores[i], 4),
-                    "job_desc_score": round(job_desc_scores[i], 4),
-                    "combined_importance": round((resume_scores[i] + job_desc_scores[i]) / 2, 4)
-                })
-                print(f"DEBUG - Common term found: {feature} (resume: {resume_scores[i]:.4f}, job: {job_desc_scores[i]:.4f})")
-        
-        print(f"DEBUG - Common terms found: {len(common_terms)}")
-        
-        common_terms = sorted(common_terms, key=lambda x: x["combined_importance"], reverse=True)[:15]
+        print(f"DEBUG - Common terms found: {len(common_keywords)}")
+
+        common_terms = common_keywords[:15]  # Top 15 common keywords
         
         # Match quality
         if similarity_score >= 0.3:
@@ -255,7 +213,7 @@ def calculate_resume_job_similarity(resume_text, job_description_text):
             "similarity_score": round(similarity_score, 4),
             "match_quality": match_quality,
             "common_keywords": common_terms,
-            "total_features": len(feature_names)
+            "total_features": len(common_terms)
         }
         
     except Exception as e:
