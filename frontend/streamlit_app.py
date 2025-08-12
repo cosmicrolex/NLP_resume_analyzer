@@ -354,8 +354,8 @@ def load_css():
     </style>
     """, unsafe_allow_html=True)
 
-# API base URL
-API_BASE_URL = "http://127.0.0.1:8000"
+# API base URL - use environment variable for production
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 def main():
     # Initialize theme

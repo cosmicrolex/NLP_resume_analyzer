@@ -1,0 +1,47 @@
+services:
+  # Backend API Service
+  - type: web
+    name: ai-job-assistant-backend
+    runtime: python3
+    buildCommand: |
+      cd backend && chmod +x build.sh && ./build.sh
+    startCommand: |
+      cd backend/app && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+    healthCheckPath: /
+    plan: free
+    region: oregon
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+
+  # Frontend Streamlit Service
+  - type: web
+    name: ai-job-assistant-frontend
+    runtime: python3
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false
+    envVars:
+      - key: API_BASE_URL
+        value: https://ai-job-assistant-backend.onrender.com
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+    plan: free
+    region: oregon
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+# Database (if needed in future)
+# databases:
+#   - name: ai-job-assistant-db
+#     databaseName: ai_job_assistant
+#     user: ai_job_assistant_user
+#     plan: free

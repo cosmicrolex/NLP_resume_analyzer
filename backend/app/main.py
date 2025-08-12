@@ -166,3 +166,17 @@ async def match_resume_job_pdf(
 @app.get("/")
 def home():
     return {"message": "Resume Analyzer API is running!"}
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "message": "AI-Powered Job Assistant API is running",
+        "version": "1.0.0",
+        "endpoints": [
+            "/analyze-resume/",
+            "/analyze-job-description/",
+            "/match-resume-job/",
+            "/match-resume-job-pdf/"
+        ]
+    }
