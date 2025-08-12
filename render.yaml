@@ -8,7 +8,7 @@ services:
       environment:
         pythonVersion: 3.11
     buildCommand: |
-      pip install --upgrade pip && pip install --only-binary=all -r requirements.txt && python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)" && mkdir -p utils/output
+      pip install --upgrade pip && pip install -r requirements.txt && python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)" && mkdir -p utils/output
     startCommand: |
       cd app && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -28,8 +28,11 @@ services:
   - type: web
     name: ai-job-assistant-frontend
     runtime: python
+    build:
+      environment:
+        pythonVersion: 3.11
     buildCommand: |
-      pip install --upgrade pip && pip install --only-binary=all -r requirements.txt
+      pip install --upgrade pip && pip install -r requirements.txt
     startCommand: |
       streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false
     envVars:
