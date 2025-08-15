@@ -209,7 +209,7 @@ def compare_documents(self, doc1, doc2):
    - **Output**: Match score, common keywords, fit percentage
 
 4. **`/health`** (GET)
-   - **Purpose**: Health check for deployment monitoring
+   - **Purpose**: API health check and status monitoring
 
 #### `backend/app/tfidf_analyzer.py` - Analysis Engine
 
@@ -336,7 +336,7 @@ def calculate_resume_job_similarity(resume_text, job_description_text):
 **Advantages over scikit-learn**:
 
 1. **No Compilation Issues**: Pure Python, no Cython dependencies
-2. **Deployment Friendly**: Works on any Python 3.11+ environment
+2. **Environment Friendly**: Works on any Python 3.11+ environment
 3. **Customizable**: Tailored for resume/job description analysis
 4. **Lightweight**: Minimal dependencies
 5. **Transparent**: Full control over algorithm behavior
@@ -369,33 +369,6 @@ def get_resume_strengths_weaknesses(resume_text, tfidf_scores):
 - **Token Limits**: Efficient API usage
 - **Error Handling**: Graceful fallbacks
 - **JSON Parsing**: Structured response format
-
-### Deployment Architecture
-
-**Render.com Configuration**:
-
-```yaml
-services:
-  - type: web
-    name: ai-job-assistant-backend
-    runtime: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt && python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)"
-    startCommand: cd app && uvicorn main:app --host 0.0.0.0 --port $PORT
-
-  - type: web
-    name: ai-job-assistant-frontend
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run frontend/streamlit_app.py --server.port $PORT
-```
-
-**Key Features**:
-
-- **Microservices**: Separate backend and frontend
-- **Auto-scaling**: Render handles traffic spikes
-- **Environment Variables**: Secure API key management
-- **Health Checks**: Automatic monitoring
 
 ---
 

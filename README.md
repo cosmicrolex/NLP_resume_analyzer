@@ -83,53 +83,6 @@ Cosine Similarity: Measures compatibility between resumes and job descriptions.
 AI Insights: Uses OpenAI's API to identify resume deficiencies (e.g., missing skills, extracurriculars) and provide tailored improvement suggestions.
 Streamlit Frontend: User-friendly interface with dark/light mode, displaying analysis results and AI insights.
 
-## 🚀 Deployment
-
-### Quick Deploy to Render
-
-1. **Push to GitHub:**
-
-   ```bash
-   git add .
-   git commit -m "Deploy to Render"
-   git push origin main
-   ```
-
-2. **Deploy on Render:**
-
-   - Go to [Render Dashboard](https://dashboard.render.com)
-   - Click "New" → "Blueprint"
-   - Connect your GitHub repository
-   - Set environment variables:
-     - `GROQ_API_KEY`: Your Groq API key
-     - `API_BASE_URL`: Backend service URL
-
-3. **Access Your App:**
-   - Backend: `https://ai-job-assistant-backend.onrender.com`
-   - Frontend: `https://ai-job-assistant-frontend.onrender.com`
-
-### Docker Deployment
-
-```bash
-# Run deployment setup
-./deploy.sh
-
-# Start with Docker Compose
-docker-compose up --build
-```
-
-### Environment Variables
-
-Create `.env` file with:
-
-```
-GROQ_API_KEY=your_groq_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-API_BASE_URL=http://127.0.0.1:8000
-```
-
-📖 **See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions**
-
 Notes
 
 Ensure the PDF file names match those used in API calls.

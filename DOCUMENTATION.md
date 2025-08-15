@@ -74,6 +74,7 @@ def analyze_resume_with_ai(resume_text, job_description=None):
 ```
 
 **Predefined Prompt System:**
+
 - Career coach persona for resume analysis
 - Structured JSON output format
 - Context-aware analysis with job description
@@ -96,6 +97,7 @@ def analyze_resume_with_tfidf(resume_text):
 ```
 
 **Features:**
+
 - Intelligent text preprocessing
 - Keyword extraction and scoring
 - Cosine similarity calculations
@@ -127,17 +129,19 @@ client = OpenAI(
 ### Predefined Prompts
 
 **Resume Strengths/Weaknesses Analysis:**
+
 ```
-You are a career advisor. Analyze the provided resume text. 
+You are a career advisor. Analyze the provided resume text.
 Identify 3-5 key strengths and 3-5 weaknesses.
-Return response in JSON format: 
+Return response in JSON format:
 {
-  'strengths': ['bullet1', 'bullet2', ...], 
+  'strengths': ['bullet1', 'bullet2', ...],
   'weaknesses': ['bullet1', 'bullet2', ...]
 }
 ```
 
 **Job Fit Assessment:**
+
 ```
 You are a hiring manager. Assess how well the resume fits the job description.
 Provide:
@@ -171,6 +175,7 @@ Provide:
 ### Error Handling Strategy
 
 **Backend Error Handling:**
+
 ```python
 try:
     # Process request
@@ -178,12 +183,13 @@ try:
     return JSONResponse(content=result)
 except Exception as e:
     return JSONResponse(
-        status_code=500, 
+        status_code=500,
         content={"error": f"Processing failed: {str(e)}"}
     )
 ```
 
 **Frontend Error Handling:**
+
 ```python
 try:
     # Check if response is dict or string
@@ -198,11 +204,12 @@ except (json.JSONDecodeError, TypeError) as e:
 ### Data Structure Standards
 
 **TF-IDF Analysis Response:**
+
 ```json
 {
   "top_keywords": [
-    {"term": "python", "score": 0.8542},
-    {"term": "machine learning", "score": 0.7231}
+    { "term": "python", "score": 0.8542 },
+    { "term": "machine learning", "score": 0.7231 }
   ],
   "llm_strengths_weaknesses": {
     "strengths": ["Strong technical skills", "Relevant experience"],
@@ -212,6 +219,7 @@ except (json.JSONDecodeError, TypeError) as e:
 ```
 
 **Similarity Analysis Response:**
+
 ```json
 {
   "similarity_score": 0.7234,
@@ -243,17 +251,17 @@ OPENAI_API_KEY=your_openai_api_key_here  # Optional fallback
 - File Processing: Temporary file cleanup after processing
 - Memory Management: Efficient text processing for large documents
 
-## 🚀 Deployment Guide
-
-### Local Development Setup
+## 🚀 Local Development Setup
 
 1. **Clone Repository**
+
 ```bash
 git clone <repository-url>
 cd AI-Powered-Job-Assistant
 ```
 
 2. **Create Virtual Environment**
+
 ```bash
 python -m venv virtualenvironment
 source virtualenvironment/bin/activate  # Linux/Mac
@@ -262,12 +270,14 @@ virtualenvironment\Scripts\activate     # Windows
 ```
 
 3. **Install Dependencies**
+
 ```bash
 pip install -r requirements.txt
 cd backend && pip install -r requirements.txt
 ```
 
 4. **Configure Environment**
+
 ```bash
 # Create .env file with your API keys
 echo "GROQ_API_KEY=your_key_here" > .env
@@ -275,43 +285,35 @@ cp .env backend/.env
 ```
 
 5. **Start Backend**
+
 ```bash
 cd backend/app
 uvicorn main:app --reload
 ```
 
 6. **Start Frontend**
+
 ```bash
 cd frontend
 streamlit run streamlit_app.py
 ```
 
-### Production Deployment
-
-**Backend (FastAPI):**
-- Use Gunicorn or Uvicorn with multiple workers
-- Configure reverse proxy (Nginx)
-- Set up SSL certificates
-- Implement proper logging
-
-**Frontend (Streamlit):**
-- Deploy on Streamlit Cloud or custom server
-- Configure environment variables
-- Set up monitoring and analytics
-
 ## 🧪 Testing Strategy
 
 ### Unit Tests
+
 - PDF text extraction accuracy
 - TF-IDF calculation correctness
 - API endpoint response validation
 
 ### Integration Tests
+
 - End-to-end resume analysis workflow
 - LLM response parsing and error handling
 - File upload and processing pipeline
 
 ### Performance Tests
+
 - Large PDF processing times
 - Concurrent user handling
 - Memory usage optimization
@@ -321,24 +323,29 @@ streamlit run streamlit_app.py
 ### Common Issues
 
 **1. "Cannot use dictionary" Error**
+
 - **Cause:** Frontend trying to parse already-parsed JSON
 - **Solution:** Updated error handling in streamlit_app.py
 
 **2. LLM Analysis Not Working**
+
 - **Cause:** Missing or invalid GROQ_API_KEY
 - **Solution:** Verify API key in .env file
 
 **3. PDF Processing Fails**
+
 - **Cause:** Corrupted or unsupported PDF format
 - **Solution:** Implement better PDF validation
 
 **4. Slow Response Times**
+
 - **Cause:** Large documents or API rate limits
 - **Solution:** Implement text truncation and caching
 
 ### Debug Mode
 
 Enable debug logging by setting environment variable:
+
 ```bash
 export DEBUG=True
 ```
