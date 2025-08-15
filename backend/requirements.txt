@@ -1,12 +1,4 @@
-setuptools>=65
-wheel
-
-# Build system requirements (must be first)
-setuptools>=65.0.0
-wheel>=0.38.0
-pip>=22.0.0
-
-# Core FastAPI and server dependencies (Python 3.11 compatible)
+# Core FastAPI and server dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
