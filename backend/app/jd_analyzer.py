@@ -6,6 +6,8 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import string
 
+nltk.download('punkt')
+
 def analyze_jd_with_tfidf(jd_text):
     """
     Analyze a job description text using TF-IDF and return top keywords with scores.
