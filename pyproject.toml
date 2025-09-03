@@ -1,0 +1,39 @@
+[build-system]
+requires = [
+    "setuptools>=70.0.0",
+    "wheel>=0.42.0",
+    "pip>=24.0"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-job-assistant"
+version = "1.0.0"
+description = "AI-Powered Job Assistant with resume analysis and job matching"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.9",
+    "python-dotenv>=1.0.1",
+    "gunicorn>=21.2.0",
+    "openai>=1.12.0",
+    "groq>=0.4.2",
+    "numpy>=1.26.0",
+    "pandas>=2.1.0",
+    "PyPDF2>=3.0.1",
+    "pdfplumber>=0.10.4",
+    "pdf2image>=1.17.0",
+    "Pillow>=10.2.0",
+    "pytesseract>=0.3.10",
+    "nltk>=3.8.1",
+    "spacy>=3.7.0",
+    "beautifulsoup4>=4.12.0",
+    "requests>=2.31.0",
+    "pydantic>=2.6.0",
+    "python-dateutil>=2.8.2",
+    "streamlit>=1.31.0"
+]
+
+[tool.setuptools]
+py-modules = []
