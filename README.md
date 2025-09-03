@@ -26,36 +26,40 @@ OpenAI API key (stored in backend/.env)
 
 Setup Instructions
 
-Clone the repository:git clone <repository-url>
+▶️Clone the repository:
+>>git clone <repository-url>
 
-Create and activate a virtual environment:python -m venv virtualenvironment
-cd .\AI-Powered-Job-Assistant\virtualenvironment\Scripts\
+▶️Create and activate a virtual environment:
+>>python -m venv virtualenvironment
+>>cd .\AI-Powered-Job-Assistant\virtualenvironment\Scripts\
 .\activate
 
-Install dependencies:
-Copy requirements.txt from the root directory to virtualenvironment\Scripts\.
+▶️Install dependencies:
+go to root directory by doing cd../.. and make sure the env is active
 Run:pip install -r requirements.txt
 
-Navigate to backend/ and install backend-specific dependencies:cd .\AI-Powered-Job-Assistant\backend\
+▶️Navigate to backend/ and install backend-specific dependencies:cd .\AI-Powered-Job-Assistant\backend\
 pip install -r requirements.txt
 
-Create a .env file in backend/ with your OpenAI API key:OPENAI_API_KEY=your_openai_api_key_here
+▶️Create a .env file in backend/ with your OpenAI API key:OPENAI_API_KEY=your_openai_api_key_here
 
-Place a sample PDF resume in backend/utils/ for testing.
+▶️Place a sample PDF resume in backend/utils/ for testing.
 
-Running the Backend
+:::::::::::::::::::Running the Backend:::::::::::::
 
-Navigate to the backend app directory:cd .\AI-Powered-Job-Assistant\backend\app
+▶️️️️Navigate to the backend app directory:cd .\AI-Powered-Job-Assistant\backend\
 
-Start the FastAPI server:uvicorn app.main:app --reload
+▶️Start the FastAPI server:
+>>uvicorn app.main:app --reload
 
 Access the API at http://127.0.0.1:8000.
 
-Running the Frontend
+:::::::::::::Running the Frontend:::::::::::::
 
-Open a new terminal and navigate to the frontend directory:cd .\AI-Powered-Job-Assistant\frontend
+▶️Open a new terminal and navigate to the frontend directory:cd .\AI-Powered-Job-Assistant\frontend
 
-Start the Streamlit app:streamlit run streamlit_app.py
+▶️Start the Streamlit app:
+>>streamlit run streamlit_app.py
 
 Access the frontend at http://localhost:8501.
 
