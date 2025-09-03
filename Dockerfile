@@ -1,28 +1,65 @@
-FROM python:3.12-slim
+# Use Python 3.11 for better compatibility
+FROM python:3.11-slim
 
-# Install system dependencies for pdf2image (poppler-utils) and pytesseract (tesseract-ocr)
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
+    # PDF processing dependencies
     poppler-utils \
     tesseract-ocr \
+    tesseract-ocr-eng \
     libtesseract-dev \
-    && rm -rf /var/lib/apt/lists/*
+    # Build dependencies
+    gcc \
+    g++ \
+    make \
+    # Network tools
+    curl \
+    wget \
+    # Clean up
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install Python packages
+# Upgrade pip and install build tools first
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements file
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Python dependencies with specific flags for stability
+RUN pip install --no-cache-dir \
+    --timeout=1000 \
+    --retries=5 \
+    -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Download spaCy model after copying code
-RUN python install_spacy_model.py
+# Create necessary directories
+RUN mkdir -p backend/utils/output
 
-# Expose port (Render uses 10000 by default)
+# Download NLTK data
+RUN python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)"
+
+# Download spaCy model
+RUN python -m spacy download en_core_web_sm
+
+# Set proper permissions
+RUN chmod +x install_spacy_model.py start.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:10000/health || exit 1
+
+# Expose port
 EXPOSE 10000
 
-# Start FastAPI with uvicorn
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "10000"]
+# Start command
+CMD ["./start.sh"]

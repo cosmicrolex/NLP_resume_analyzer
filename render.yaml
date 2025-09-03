@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ai-job-assistant
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: API_BASE_URL
+        value: https://ai-job-assistant.onrender.com
+    scaling:
+      minInstances: 1
+      maxInstances: 1

@@ -1,32 +1,40 @@
+# Git
+.git
+.gitignore
+
 # Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+__pycache__
+*.pyc
+*.pyo
+*.pyd
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
 
 # Virtual environments
-virtualenvironment/
-venv/
+.env
+.venv
 env/
+venv/
 ENV/
+env.bak/
+venv.bak/
+virtualenvironment/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
@@ -35,31 +43,47 @@ ENV/
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-
-# Git
-.git/
-.gitignore
 
 # Documentation
 *.md
 docs/
-
-# Logs
-*.log
-
-# Environment variables (will be set in deployment)
-.env
+DOCUMENTATION.md
+DETAILED_EXPLANATION.md
 
 # Temporary files
-backend/utils/output/
 *.tmp
 *.temp
+temp/
+tmp/
+
+# Logs
+logs/
+*.log
 
 # Node modules (if any)
 node_modules/
 
-# Coverage reports
-htmlcov/
-.coverage
-.pytest_cache/
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Test files
+tests/
+test_*
+*_test.py
+
+# Local development files
+.env.local
+.env.development
+.env.test
+
+# Output directories
+backend/utils/output/*
+!backend/utils/output/.gitkeep
