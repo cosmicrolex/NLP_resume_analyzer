@@ -7,6 +7,8 @@ services:
     region: oregon
     branch: main
     healthCheckPath: /health
+    buildCommand: ""
+    startCommand: ""
     envVars:
       - key: GROQ_API_KEY
         sync: false

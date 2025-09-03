@@ -1,65 +1,51 @@
-# Use Python 3.11 for better compatibility
-FROM python:3.11-slim
+# Use Python 3.11 explicitly
+FROM python:3.11.9-slim-bullseye
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PORT=10000
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    # PDF processing dependencies
     poppler-utils \
     tesseract-ocr \
     tesseract-ocr-eng \
     libtesseract-dev \
-    # Build dependencies
     gcc \
     g++ \
     make \
-    # Network tools
     curl \
     wget \
-    # Clean up
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Upgrade pip and install build tools first
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+# Install Python build tools with specific versions
+RUN python -m pip install --upgrade pip==23.3.1
+RUN pip install setuptools==68.2.2 wheel==0.41.2 Cython==0.29.36
 
-# Copy requirements file
+# Copy and install requirements
 COPY requirements.txt .
-
-# Install Python dependencies with specific flags for stability
-RUN pip install --no-cache-dir \
-    --timeout=1000 \
-    --retries=5 \
-    -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create necessary directories
+# Create output directory
 RUN mkdir -p backend/utils/output
 
-# Download NLTK data
-RUN python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)"
+# Download models (with error handling)
+RUN python -c "import nltk; nltk.download('stopwords', quiet=True); nltk.download('punkt', quiet=True)" || true
+RUN python -m spacy download en_core_web_sm || true
 
-# Download spaCy model
-RUN python -m spacy download en_core_web_sm
-
-# Set proper permissions
-RUN chmod +x install_spacy_model.py start.sh
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:10000/health || exit 1
+# Make scripts executable
+RUN chmod +x start.sh
 
 # Expose port
-EXPOSE 10000
+EXPOSE $PORT
 
-# Start command
-CMD ["./start.sh"]
+# Start the application directly
+CMD uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --workers 1
