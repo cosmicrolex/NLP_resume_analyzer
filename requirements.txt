@@ -15,12 +15,13 @@ groq>=0.11.0
 # Data visualization and processing
 altair>=5.1.2
 pandas>=2.0.3
-numpy>=1.26.4  # Updated to support Python 3.12
+numpy>=1.26.4
 scikit-learn>=1.5.1
 
 # PDF processing
 PyPDF2>=3.0.1
-pdfplumber>=0.11.4  # Updated to support Python 3.12
+pdfplumber>=0.11.4
+pdf2image>=1.17.0  # Added for image-based PDF extraction
 
 # Text processing and NLP
 nltk>=3.8.1
