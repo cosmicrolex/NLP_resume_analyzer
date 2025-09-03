@@ -358,6 +358,199 @@ def load_css():
 # using localhost for render deployment
 API_BASE_URL = os.getenv("API_BASE_URL", "https://nlp-ai-resume-analysis.onrender.com")
 
+def display_detailed_error(error_info, context="API Request"):
+    """Display detailed error information in an expandable format"""
+    st.error(f"❌ {context} Failed")
+    
+    with st.expander("🔍 **Click to view detailed error information**", expanded=False):
+        st.markdown("### 🚨 Error Details")
+        
+        # Basic error info
+        if isinstance(error_info, dict):
+            if "error_type" in error_info:
+                st.markdown(f"**Error Type:** `{error_info['error_type']}`")
+            if "error_message" in error_info:
+                st.markdown(f"**Error Message:** {error_info['error_message']}")
+            if "status_code" in error_info:
+                st.markdown(f"**HTTP Status Code:** `{error_info['status_code']}`")
+            if "endpoint" in error_info:
+                st.markdown(f"**API Endpoint:** `{error_info['endpoint']}`")
+        else:
+            st.markdown(f"**Error Message:** {str(error_info)}")
+        
+        # Additional debugging info
+        st.markdown("### 🔧 Debugging Information")
+        st.markdown(f"**API Base URL:** `{API_BASE_URL}`")
+        st.markdown(f"**Timestamp:** {st.session_state.get('last_error_time', 'Unknown')}")
+        
+        # Raw error details
+        if isinstance(error_info, dict) and "raw_response" in error_info:
+            st.markdown("### 📄 Raw Response")
+            st.code(error_info["raw_response"], language="json")
+        
+        # Troubleshooting suggestions
+        st.markdown("### 💡 Troubleshooting Suggestions")
+        if isinstance(error_info, dict):
+            if error_info.get("status_code") == 500:
+                st.markdown("""
+                - **Server Error**: The backend service encountered an internal error
+                - Check if all required environment variables are set (GROQ_API_KEY, etc.)
+                - Verify that the spaCy model is properly installed
+                - Check backend logs for detailed error information
+                """)
+            elif error_info.get("status_code") == 404:
+                st.markdown("""
+                - **Endpoint Not Found**: The API endpoint may be incorrect
+                - Verify the API base URL is correct
+                - Check if the backend service is running
+                """)
+            elif error_info.get("status_code") == 422:
+                st.markdown("""
+                - **Validation Error**: The request data format is incorrect
+                - Check if the uploaded file is a valid PDF
+                - Verify all required fields are provided
+                """)
+            elif "Connection" in str(error_info.get("error_type", "")):
+                st.markdown("""
+                - **Connection Error**: Cannot reach the backend service
+                - Check your internet connection
+                - Verify the API base URL is correct and accessible
+                - The backend service might be down or restarting
+                """)
+            elif "JSON" in str(error_info.get("error_type", "")):
+                st.markdown("""
+                - **JSON Parse Error**: The server response is not valid JSON
+                - This usually indicates a server error or timeout
+                - The backend might be returning HTML error pages instead of JSON
+                - Check if the backend service is properly configured
+                """)
+        else:
+            st.markdown("""
+            - Check your internet connection
+            - Verify the backend service is running
+            - Try refreshing the page and attempting again
+            - Contact support if the issue persists
+            """)
+
+def make_api_request(method, endpoint, files=None, data=None, timeout=30):
+    """Make API request with comprehensive error handling"""
+    import time
+    
+    # Store timestamp for debugging
+    st.session_state.last_error_time = time.strftime("%Y-%m-%d %H:%M:%S")
+    
+    try:
+        url = f"{API_BASE_URL}{endpoint}"
+        
+        if method.upper() == "POST":
+            response = requests.post(url, files=files, data=data, timeout=timeout)
+        elif method.upper() == "GET":
+            response = requests.get(url, timeout=timeout)
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+        
+        # Check if response is successful
+        if response.status_code == 200:
+            try:
+                return {"success": True, "data": response.json()}
+            except json.JSONDecodeError as e:
+                return {
+                    "success": False,
+                    "error_type": "JSON Decode Error",
+                    "error_message": f"Server returned invalid JSON: {str(e)}",
+                    "status_code": response.status_code,
+                    "endpoint": endpoint,
+                    "raw_response": response.text[:1000] + "..." if len(response.text) > 1000 else response.text
+                }
+        else:
+            # Try to get error message from response
+            try:
+                error_data = response.json()
+                error_message = error_data.get("error", f"HTTP {response.status_code} Error")
+            except json.JSONDecodeError:
+                error_message = f"HTTP {response.status_code}: {response.reason}"
+            
+            return {
+                "success": False,
+                "error_type": f"HTTP {response.status_code} Error",
+                "error_message": error_message,
+                "status_code": response.status_code,
+                "endpoint": endpoint,
+                "raw_response": response.text[:1000] + "..." if len(response.text) > 1000 else response.text
+            }
+    
+    except requests.exceptions.ConnectionError as e:
+        return {
+            "success": False,
+            "error_type": "Connection Error",
+            "error_message": f"Cannot connect to backend service: {str(e)}",
+            "endpoint": endpoint,
+            "raw_response": str(e)
+        }
+    
+    except requests.exceptions.Timeout as e:
+        return {
+            "success": False,
+            "error_type": "Timeout Error",
+            "error_message": f"Request timed out after {timeout} seconds: {str(e)}",
+            "endpoint": endpoint,
+            "raw_response": str(e)
+        }
+    
+    except requests.exceptions.RequestException as e:
+        return {
+            "success": False,
+            "error_type": "Request Error",
+            "error_message": f"Request failed: {str(e)}",
+            "endpoint": endpoint,
+            "raw_response": str(e)
+        }
+    
+    except json.JSONDecodeError as e:
+        return {
+            "success": False,
+            "error_type": "JSON Decode Error",
+            "error_message": f"Failed to parse response as JSON: {str(e)}",
+            "endpoint": endpoint,
+            "raw_response": "Invalid JSON response"
+        }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "error_type": "Unexpected Error",
+            "error_message": f"An unexpected error occurred: {str(e)}",
+            "endpoint": endpoint,
+            "raw_response": str(e)
+        }
+
+def test_backend_connection():
+    """Test backend connection and display status"""
+    st.markdown("### 🔗 Backend Connection Status")
+    
+    with st.spinner("Testing backend connection..."):
+        result = make_api_request("GET", "/health")
+        
+        if result["success"]:
+            st.success("✅ Backend connection successful!")
+            health_data = result["data"]
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Status", health_data.get("status", "Unknown"))
+            with col2:
+                st.metric("Version", health_data.get("version", "Unknown"))
+            with col3:
+                endpoints = health_data.get("endpoints", [])
+                st.metric("Endpoints", len(endpoints))
+            
+            with st.expander("Available Endpoints"):
+                for endpoint in endpoints:
+                    st.code(endpoint)
+        else:
+            st.error("❌ Backend connection failed!")
+            display_detailed_error(result, "Backend Health Check")
+
 
 
 def main():
@@ -411,6 +604,13 @@ def main():
         theme_status = "🌙 Dark Mode" if st.session_state.dark_mode else "☀️ Light Mode"
         st.markdown(f"**Current Theme:** {theme_status}")
         st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Backend connection test
+        st.markdown('<div class="nav-card">', unsafe_allow_html=True)
+        st.markdown("### 🔧 System Status")
+        if st.button("🔍 Test Backend Connection", use_container_width=True):
+            test_backend_connection()
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Route to appropriate page
     if option == "📄 Resume Analysis":
@@ -454,74 +654,67 @@ def resume_analysis_page():
         with col2:
             if st.button("🚀 Analyze Resume", type="primary", use_container_width=True):
                 with st.spinner("🔍 Analyzing your resume with AI..."):
-                    try:
-                        files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
-                        response = requests.post(f"{API_BASE_URL}/analyze-resume/", files=files)
+                    files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
+                    result = make_api_request("POST", "/analyze-resume/", files=files)
+                    
+                    if result["success"]:
+                        data = result["data"]
+                        st.success("✅ Resume analyzed successfully!")
                         
-                        if response.status_code == 200:
-                            result = response.json()
-                            
-                            st.success("✅ Resume analyzed successfully!")
-                            
-                            col1, col2 = st.columns(2)
-                            
-                            with col1:
-                                st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-                                st.markdown("### 📊 Key Skills & Keywords")
-                                if "tfidf_analysis" in result and result["tfidf_analysis"]:
-                                    keywords_df = []
-                                    for keyword in result["tfidf_analysis"]:
-                                        keywords_df.append({
-                                            "🔑 Keyword": keyword["term"],
-                                            "📈 TF-IDF Score": f"{keyword['score']:.4f}"
-                                        })
-                                    st.dataframe(keywords_df, use_container_width=True, hide_index=True)
-                                st.markdown('</div>', unsafe_allow_html=True)
-                            
-                            with col2:
-                                st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-                                st.markdown("### 📝 Extracted Text Preview")
-                                extracted_text = result.get("extracted_text", "")
-                                preview_text = extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text
-                                st.text_area("Extracted Text Preview", preview_text, height=300, label_visibility="collapsed")  # Fixed: Added non-empty label
-                                st.markdown('</div>', unsafe_allow_html=True)
-                            
-                            # LLM Strengths and Weaknesses
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
                             st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-                            st.markdown("### 💪 Strengths & Weaknesses (Groq LLM)")
-                            if "llm_strengths_weaknesses" in result and result["llm_strengths_weaknesses"]:
-                                try:
-                                    sw = result["llm_strengths_weaknesses"]
-                                    # Check if it's already a dictionary or needs JSON parsing
-                                    if isinstance(sw, str):
-                                        sw = json.loads(sw)
-
-                                    if isinstance(sw, dict):
-                                        st.markdown("**Strengths:**")
-                                        for s in sw.get("strengths", []):
-                                            st.markdown(f"- {s}")
-                                        st.markdown("**Weaknesses:**")
-                                        for w in sw.get("weaknesses", []):
-                                            st.markdown(f"- {w}")
-
-                                        # Show raw response if available for debugging
-                                        if "raw_response" in sw:
-                                            with st.expander("🔍 Raw AI Response"):
-                                                st.text(sw["raw_response"])
-                                    else:
-                                        st.write(sw)  # Fallback display
-                                except (json.JSONDecodeError, TypeError) as e:
-                                    st.error(f"Error parsing LLM response: {str(e)}")
-                                    st.write(result["llm_strengths_weaknesses"])  # Fallback raw display
-                            else:
-                                st.warning("⚠️ No LLM analysis available. Check GROQ_API_KEY.")
+                            st.markdown("### 📊 Key Skills & Keywords")
+                            if "tfidf_analysis" in data and data["tfidf_analysis"]:
+                                keywords_df = []
+                                for keyword in data["tfidf_analysis"]:
+                                    keywords_df.append({
+                                        "🔑 Keyword": keyword["term"],
+                                        "📈 TF-IDF Score": f"{keyword['score']:.4f}"
+                                    })
+                                st.dataframe(keywords_df, use_container_width=True, hide_index=True)
                             st.markdown('</div>', unsafe_allow_html=True)
                         
+                        with col2:
+                            st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+                            st.markdown("### 📝 Extracted Text Preview")
+                            extracted_text = data.get("extracted_text", "")
+                            preview_text = extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text
+                            st.text_area("Extracted Text Preview", preview_text, height=300, label_visibility="collapsed")
+                            st.markdown('</div>', unsafe_allow_html=True)
+                        
+                        # LLM Strengths and Weaknesses
+                        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+                        st.markdown("### 💪 Strengths & Weaknesses (Groq LLM)")
+                        if "llm_strengths_weaknesses" in data and data["llm_strengths_weaknesses"]:
+                            try:
+                                sw = data["llm_strengths_weaknesses"]
+                                if isinstance(sw, str):
+                                    sw = json.loads(sw)
+
+                                if isinstance(sw, dict):
+                                    st.markdown("**Strengths:**")
+                                    for s in sw.get("strengths", []):
+                                        st.markdown(f"- {s}")
+                                    st.markdown("**Weaknesses:**")
+                                    for w in sw.get("weaknesses", []):
+                                        st.markdown(f"- {w}")
+
+                                    if "raw_response" in sw:
+                                        with st.expander("🔍 Raw AI Response"):
+                                            st.text(sw["raw_response"])
+                                else:
+                                    st.write(sw)
+                            except (json.JSONDecodeError, TypeError) as e:
+                                st.error(f"Error parsing LLM response: {str(e)}")
+                                st.write(data["llm_strengths_weaknesses"])
                         else:
-                            st.error(f"❌ Error: {response.json().get('error', 'Unknown error')}")
-                            
-                    except Exception as e:
-                        st.error(f"❌ Connection error: {str(e)}")  
+                            st.warning("⚠️ No LLM analysis available. Check GROQ_API_KEY.")
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    else:
+                        display_detailed_error(result, "Resume Analysis")  
 
 def job_description_analysis_page():
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
