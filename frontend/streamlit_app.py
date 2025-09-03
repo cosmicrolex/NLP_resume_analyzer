@@ -458,7 +458,8 @@ def resume_analysis_page():
                         response = requests.post(f"{API_BASE_URL}/analyze-resume/", files=files)
                         
                         if response.status_code == 200:
-                            result = response.json()
+                            st.write("Matcher status:", response.status_code)
+                            st.write("Matcher raw response:", response.text)
                             
                             st.success("✅ Resume analyzed successfully!")
                             
@@ -520,7 +521,7 @@ def resume_analysis_page():
                             st.error(f"❌ Error: {response.json().get('error', 'Unknown error')}")
                             
                     except Exception as e:
-                        st.error(f"❌ Connection error: {str(e)}")
+                        st.error(f"❌ Connection error: {str(e)}")  
 
 def job_description_analysis_page():
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
@@ -582,7 +583,8 @@ def job_description_analysis_page():
                             response = requests.post(f"{API_BASE_URL}/analyze-job-description-pdf/", files=files)
                         
                         if response.status_code == 200:
-                            result = response.json()
+                            st.write("Matcher status:", response.status_code)
+                            st.write("Matcher raw response:", response.text)
                             
                             st.success("✅ Job description analyzed successfully!")
                             
@@ -697,7 +699,8 @@ def matching_page():
                             response = requests.post(f"{API_BASE_URL}/match-resume-job-pdf/", files=files)
                         
                         if response.status_code == 200:
-                            result = response.json()
+                            st.write("Matcher status:", response.status_code)
+                            st.write("Matcher raw response:", response.text)
                             analysis = result.get("analysis", {})
                             
                             st.success("✅ Compatibility analysis completed!")
