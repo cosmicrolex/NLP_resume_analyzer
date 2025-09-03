@@ -12,10 +12,20 @@ from simple_tfidf import SimpleTFIDF
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 # Initialize Groq client (uses OpenAI SDK compatibility)
-client = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
-    base_url="https://api.groq.com/openai/v1"
-)
+groq_api_key = os.getenv("GROQ_API_KEY")
+if groq_api_key:
+    try:
+        client = OpenAI(
+            api_key=groq_api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
+        print("✅ Groq client initialized successfully")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Groq client: {str(e)}")
+        client = None
+else:
+    print("⚠️ GROQ_API_KEY not found in environment variables")
+    client = None
 
 # Download NLTK data
 nltk.download('stopwords', quiet=True)
@@ -58,12 +68,37 @@ def preprocess_text(text):
     # Remove standalone years (2020, 2021, etc.)
     text = re.sub(r'\b(19|20)\d{2}\b', '', text)
     
+    # If spaCy is not available, use basic preprocessing
+    if nlp is None:
+        print("DEBUG - spaCy not available, using basic preprocessing")
+        # Basic tokenization and stopword removal
+        words = text.split()
+        minimal_stopwords = {
+            'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+            'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above',
+            'below', 'between', 'among', 'this', 'that', 'these', 'those', 'is', 'was', 'are',
+            'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+            'would', 'could', 'should', 'may', 'might', 'must', 'can', 'shall'
+        }
+        filtered_words = [word for word in words if word not in minimal_stopwords and len(word) > 2]
+        return ' '.join(filtered_words)
+    
     # Tokenize with spaCy
     try:
         doc = nlp(text)
     except Exception as e:
         print(f"DEBUG - spaCy tokenization failed: {str(e)}")
-        return ""
+        # Fallback to basic preprocessing
+        words = text.split()
+        minimal_stopwords = {
+            'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+            'from', 'up', 'about', 'into', 'through', 'during', 'before', 'after', 'above',
+            'below', 'between', 'among', 'this', 'that', 'these', 'those', 'is', 'was', 'are',
+            'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+            'would', 'could', 'should', 'may', 'might', 'must', 'can', 'shall'
+        }
+        filtered_words = [word for word in words if word not in minimal_stopwords and len(word) > 2]
+        return ' '.join(filtered_words)
     
     # Extract noun phrases (1-3 words) as key terms
     key_terms = set()
@@ -149,7 +184,7 @@ def analyze_resume_with_tfidf(resume_text):
 
         # LLM analysis for strengths and weaknesses
         llm_analysis = None
-        if os.getenv("GROQ_API_KEY"):
+        if client and os.getenv("GROQ_API_KEY"):
             try:
                 llm_analysis = get_resume_strengths_weaknesses(resume_text, filtered_keywords)
                 print(f"DEBUG - LLM analysis result: {llm_analysis}")
@@ -317,7 +352,7 @@ def comprehensive_resume_job_analysis(resume_text, job_description_text):
         
         # LLM analysis for job fit
         llm_fit = None
-        if os.getenv("GROQ_API_KEY"):
+        if client and os.getenv("GROQ_API_KEY"):
             try:
                 llm_fit = get_resume_job_fit(resume_text, job_description_text, similarity_analysis)
                 print(f"DEBUG - LLM fit assessment result: {llm_fit}")

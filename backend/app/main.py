@@ -176,13 +176,28 @@ def home():
 
 @app.get("/health")
 def health_check():
+    """Health check endpoint with system status"""
+    import os
+    try:
+        # Test if we can import the analyzer
+        from tfidf_analyzer import client, nlp
+        groq_status = "configured" if client else "not configured"
+        spacy_status = "loaded" if nlp else "not loaded"
+    except Exception as e:
+        groq_status = f"error: {str(e)}"
+        spacy_status = f"error: {str(e)}"
+    
     return {
         "status": "healthy",
         "message": "AI-Powered Job Assistant API is running",
         "version": "1.0.0",
+        "groq_api_key": bool(os.getenv("GROQ_API_KEY")),
+        "groq_client": groq_status,
+        "spacy_model": spacy_status,
         "endpoints": [
             "/analyze-resume/",
             "/analyze-job-description/",
+            "/analyze-job-description-pdf/",
             "/match-resume-job/",
             "/match-resume-job-pdf/"
         ]
