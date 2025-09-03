@@ -458,8 +458,7 @@ def resume_analysis_page():
                         response = requests.post(f"{API_BASE_URL}/analyze-resume/", files=files)
                         
                         if response.status_code == 200:
-                            st.write("Matcher status:", response.status_code)
-                            st.write("Matcher raw response:", response.text)
+                            result = response.json()
                             
                             st.success("✅ Resume analyzed successfully!")
                             
@@ -583,8 +582,7 @@ def job_description_analysis_page():
                             response = requests.post(f"{API_BASE_URL}/analyze-job-description-pdf/", files=files)
                         
                         if response.status_code == 200:
-                            st.write("Matcher status:", response.status_code)
-                            st.write("Matcher raw response:", response.text)
+                            result = response.json()
                             
                             st.success("✅ Job description analyzed successfully!")
                             
@@ -629,6 +627,8 @@ def job_description_analysis_page():
                             
                     except Exception as e:
                         st.error(f"❌ Connection error: {str(e)}")
+                        st.write("Status code:", response.status_code)
+                        st.write("Raw response:", response.text)
 
 def matching_page():
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
@@ -699,8 +699,7 @@ def matching_page():
                             response = requests.post(f"{API_BASE_URL}/match-resume-job-pdf/", files=files)
                         
                         if response.status_code == 200:
-                            st.write("Matcher status:", response.status_code)
-                            st.write("Matcher raw response:", response.text)
+                            result = response.json()
                             analysis = result.get("analysis", {})
                             
                             st.success("✅ Compatibility analysis completed!")
