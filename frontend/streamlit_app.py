@@ -359,6 +359,7 @@ def load_css():
 API_BASE_URL = os.getenv("API_BASE_URL", "https://nlp-ai-resume-analysis.onrender.com")
 
 
+
 def main():
     # Initialize theme
     init_theme()
@@ -419,6 +420,18 @@ def main():
     elif option == "🎯 Resume-Job Matching":
         matching_page()
 
+def safe_json(response):
+    """Safely parse JSON and show debug info if invalid."""
+    st.write("🔍 Debug — Status code:", response.status_code)
+    st.write("🔍 Debug — Raw response:", response.text[:1000])  # limit to 1000 chars
+    
+    try:
+        return response.json()
+    except Exception as e:
+        st.error(f"❌ Failed to parse JSON: {e}")
+        return None
+
+
 def resume_analysis_page():
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
     st.markdown("## 📄 Resume Analysis")
@@ -458,7 +471,9 @@ def resume_analysis_page():
                         response = requests.post(f"{API_BASE_URL}/analyze-resume/", files=files)
                         
                         if response.status_code == 200:
-                            result = response.json()
+                            result = safe_json(response)
+                            if not result:
+                                return
                             
                             st.success("✅ Resume analyzed successfully!")
                             
@@ -582,7 +597,9 @@ def job_description_analysis_page():
                             response = requests.post(f"{API_BASE_URL}/analyze-job-description-pdf/", files=files)
                         
                         if response.status_code == 200:
-                            result = response.json()
+                            result = safe_json(response)
+                            if not result:
+                                return
                             
                             st.success("✅ Job description analyzed successfully!")
                             
@@ -627,8 +644,7 @@ def job_description_analysis_page():
                             
                     except Exception as e:
                         st.error(f"❌ Connection error: {str(e)}")
-                        st.write("Status code:", response.status_code)
-                        st.write("Raw response:", response.text)
+                        
 
 def matching_page():
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
@@ -699,7 +715,9 @@ def matching_page():
                             response = requests.post(f"{API_BASE_URL}/match-resume-job-pdf/", files=files)
                         
                         if response.status_code == 200:
-                            result = response.json()
+                            result = safe_json(response)
+                            if not result:
+                                return
                             analysis = result.get("analysis", {})
                             
                             st.success("✅ Compatibility analysis completed!")
