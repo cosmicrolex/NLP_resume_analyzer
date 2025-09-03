@@ -24,9 +24,21 @@ nltk.download('punkt', quiet=True)
 # Load spaCy model for NER and noun chunking
 try:
     nlp = spacy.load("en_core_web_sm", disable=["parser"])
+    print("✅ spaCy model loaded successfully")
+except OSError:
+    print("⚠️ spaCy model not found, attempting to download...")
+    try:
+        import subprocess
+        import sys
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+        nlp = spacy.load("en_core_web_sm", disable=["parser"])
+        print("✅ spaCy model downloaded and loaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to download spaCy model: {str(e)}")
+        nlp = None
 except Exception as e:
-    print(f"ERROR - Failed to load spaCy model: {str(e)}")
-    raise
+    print(f"❌ Failed to load spaCy model: {str(e)}")
+    nlp = None
 
 def preprocess_text(text):
     """Enhanced preprocessing to extract domain-specific terms and remove irrelevant entities"""

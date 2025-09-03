@@ -10,12 +10,16 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install
+# Copy requirements and install Python packages
 COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+
+# Download spaCy model after copying code
+RUN python install_spacy_model.py
 
 # Expose port (Render uses 10000 by default)
 EXPOSE 10000

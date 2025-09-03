@@ -22,9 +22,21 @@ except LookupError:
 # Load spaCy model
 try:
     nlp = spacy.load("en_core_web_sm", disable=["parser"])
+    print("✅ spaCy model loaded successfully in SimpleTFIDF")
+except OSError:
+    print("⚠️ spaCy model not found in SimpleTFIDF, attempting to download...")
+    try:
+        import subprocess
+        import sys
+        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+        nlp = spacy.load("en_core_web_sm", disable=["parser"])
+        print("✅ spaCy model downloaded and loaded successfully in SimpleTFIDF")
+    except Exception as e:
+        print(f"❌ Failed to download spaCy model in SimpleTFIDF: {str(e)}")
+        nlp = None
 except Exception as e:
-    print(f"ERROR - Failed to load spaCy model: {str(e)}")
-    raise
+    print(f"❌ Failed to load spaCy model in SimpleTFIDF: {str(e)}")
+    nlp = None
 
 class SimpleTFIDF:
     def __init__(self):
