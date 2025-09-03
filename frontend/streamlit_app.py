@@ -13,6 +13,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Initialize sidebar state
+def init_sidebar_state():
+    if 'sidebar_state' not in st.session_state:
+        st.session_state.sidebar_state = 'expanded'
+
+def toggle_sidebar():
+    if st.session_state.sidebar_state == 'expanded':
+        st.session_state.sidebar_state = 'collapsed'
+    else:
+        st.session_state.sidebar_state = 'expanded'
+
 # Theme toggle functionality
 def init_theme():
     if 'dark_mode' not in st.session_state:
@@ -111,6 +122,14 @@ def load_css():
         position: fixed;
         top: 1rem;
         right: 1rem;
+        z-index: 999;
+    }}
+    
+    /* Sidebar toggle button styling */
+    .sidebar-toggle-container {{
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
         z-index: 999;
     }}
     
@@ -355,8 +374,8 @@ def load_css():
     </style>
     """, unsafe_allow_html=True)
 
-# using localhost for render deployment
-API_BASE_URL = os.getenv("API_BASE_URL", "https://nlp-ai-resume-analysis.onrender.com")
+# API Base URL - Updated to match your current deployment
+API_BASE_URL = os.getenv("API_BASE_URL", "https://ai-job-assistant.onrender.com")
 
 def display_detailed_error(error_info, context="API Request"):
     """Display detailed error information in an expandable format"""
@@ -554,8 +573,9 @@ def test_backend_connection():
 
 
 def main():
-    # Initialize theme
+    # Initialize theme and sidebar state
     init_theme()
+    init_sidebar_state()
     load_css()
     
     # Theme toggle button in fixed position
@@ -565,6 +585,14 @@ def main():
         toggle_theme()
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Sidebar toggle button - only show when sidebar is collapsed
+    if st.session_state.sidebar_state == 'collapsed':
+        st.markdown('<div class="sidebar-toggle-container">', unsafe_allow_html=True)
+        if st.button("📋", key="sidebar_toggle", help="Show sidebar", type="secondary"):
+            st.session_state.sidebar_state = 'expanded'
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Main header
     st.markdown("""
