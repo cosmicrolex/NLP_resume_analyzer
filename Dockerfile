@@ -1,11 +1,24 @@
 FROM python:3.12-slim
 
-# Install poppler-utils for pdf2image
-RUN apt-get update && apt-get install -y poppler-utils \ tesseract-ocr \ libtesseract-dev \ && rm -rf /var/lib/apt/lists/*
+# Install system dependencies for pdf2image (poppler-utils) and pytesseract (tesseract-ocr)
+RUN apt-get update && apt-get install -y \
+    poppler-utils \
+    tesseract-ocr \
+    libtesseract-dev \
+    && rm -rf /var/lib/apt/lists/*
 
+# Set working directory
 WORKDIR /app
-COPY . .
-RUN pip install -r requirements.txt
 
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Expose port (Render uses 10000 by default)
 EXPOSE 10000
-CMD ["python", "start_app.py"]
+
+# Start FastAPI with uvicorn
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "10000"]
