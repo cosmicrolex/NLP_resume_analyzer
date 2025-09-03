@@ -3,6 +3,7 @@ import sys
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -19,6 +20,12 @@ from backend.utils.pdf_parser import textextractionfunction
 from tfidf_analyzer import analyze_resume_with_tfidf, analyze_job_description_with_tfidf, calculate_resume_job_similarity, comprehensive_resume_job_analysis
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],)
 
 OUTPUT_DIR = os.path.join(UTILS_DIR, 'output')
 os.makedirs(OUTPUT_DIR, exist_ok=True)

@@ -420,18 +420,6 @@ def main():
     elif option == "🎯 Resume-Job Matching":
         matching_page()
 
-def safe_json(response):
-    """Safely parse JSON and show debug info if invalid."""
-    st.write("🔍 Debug — Status code:", response.status_code)
-    st.write("🔍 Debug — Raw response:", response.text[:1000])  # limit to 1000 chars
-    
-    try:
-        return response.json()
-    except Exception as e:
-        st.error(f"❌ Failed to parse JSON: {e}")
-        return None
-
-
 def resume_analysis_page():
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
     st.markdown("## 📄 Resume Analysis")
@@ -471,9 +459,7 @@ def resume_analysis_page():
                         response = requests.post(f"{API_BASE_URL}/analyze-resume/", files=files)
                         
                         if response.status_code == 200:
-                            result = safe_json(response)
-                            if not result:
-                                return
+                            result = response.json()
                             
                             st.success("✅ Resume analyzed successfully!")
                             
@@ -597,9 +583,7 @@ def job_description_analysis_page():
                             response = requests.post(f"{API_BASE_URL}/analyze-job-description-pdf/", files=files)
                         
                         if response.status_code == 200:
-                            result = safe_json(response)
-                            if not result:
-                                return
+                            result = response.json()
                             
                             st.success("✅ Job description analyzed successfully!")
                             
@@ -715,9 +699,7 @@ def matching_page():
                             response = requests.post(f"{API_BASE_URL}/match-resume-job-pdf/", files=files)
                         
                         if response.status_code == 200:
-                            result = safe_json(response)
-                            if not result:
-                                return
+                            result = response.json()
                             analysis = result.get("analysis", {})
                             
                             st.success("✅ Compatibility analysis completed!")
