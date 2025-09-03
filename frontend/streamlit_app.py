@@ -4,6 +4,7 @@ import os
 from io import BytesIO
 import json
 
+
 # Configure Streamlit page
 st.set_page_config(
     page_title="AI Job Assistant",
@@ -355,7 +356,8 @@ def load_css():
     """, unsafe_allow_html=True)
 
 # using localhost for render deployment
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://nlp-ai-resume-analysis.onrender.com")
+
 
 def main():
     # Initialize theme
