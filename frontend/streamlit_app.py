@@ -300,6 +300,23 @@ def load_css():
         border-right: 1px solid var(--border-color) !important;
     }}
     
+    /* Hide sidebar when collapsed */
+    .sidebar-collapsed .css-1d391kg {{
+        display: none !important;
+    }}
+    
+    .sidebar-collapsed .css-1cypcdb {{
+        display: none !important;
+    }}
+    
+    /* Sidebar hide button styling */
+    .sidebar-hide-btn {{
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 1000;
+    }}
+    
     /* Dataframe styling */
     .stDataFrame {{
         background: var(--bg-secondary) !important;
@@ -654,6 +671,20 @@ def main():
     init_sidebar_state()
     load_css()
     
+    # Apply sidebar collapsed class to body if needed
+    if st.session_state.sidebar_state == 'collapsed':
+        st.markdown("""
+        <script>
+        document.body.classList.add('sidebar-collapsed');
+        </script>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <script>
+        document.body.classList.remove('sidebar-collapsed');
+        </script>
+        """, unsafe_allow_html=True)
+    
     # Theme toggle button in fixed position
     st.markdown('<div class="theme-toggle-container">', unsafe_allow_html=True)
     theme_icon = "🌙" if not st.session_state.dark_mode else "☀️"
@@ -678,43 +709,54 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Sidebar navigation
-    with st.sidebar:
-        st.markdown('<div class="nav-card">', unsafe_allow_html=True)
-        st.markdown("### 🧭 Navigation")
-        option = st.selectbox(
-            "Choose Analysis Type:",
-            ["📄 Resume Analysis", "💼 Job Description Analysis", "🎯 Resume-Job Matching"],
-            label_visibility="collapsed"
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Feature highlights
-        st.markdown('<div class="nav-card">', unsafe_allow_html=True)
-        st.markdown("### ✨ Features")
-        st.markdown("""
-        - **AI-Powered Analysis** using TF-IDF
-        - **Smart Keyword Extraction**
-        - **Similarity Scoring**
-        - **PDF Text Extraction**
-        - **Real-time Processing**
-        - **LLM Strengths/Weaknesses Analysis**
-        - **LLM Job Fit Assessment**
-        """)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Theme status
-        st.markdown('<div class="nav-card">', unsafe_allow_html=True)
-        theme_status = "🌙 Dark Mode" if st.session_state.dark_mode else "☀️ Light Mode"
-        st.markdown(f"**Current Theme:** {theme_status}")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Backend connection test
-        st.markdown('<div class="nav-card">', unsafe_allow_html=True)
-        st.markdown("### 🔧 System Status")
-        if st.button("🔍 Test Backend Connection", use_container_width=True):
-            test_backend_connection()
-        st.markdown('</div>', unsafe_allow_html=True)
+    # Sidebar navigation - only render if not collapsed
+    if st.session_state.sidebar_state == 'expanded':
+        with st.sidebar:
+            # Hide sidebar button
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col3:
+                if st.button("✖️", key="hide_sidebar", help="Hide sidebar", type="secondary"):
+                    st.session_state.sidebar_state = 'collapsed'
+                    st.rerun()
+            
+            st.markdown('<div class="nav-card">', unsafe_allow_html=True)
+            st.markdown("### 🧭 Navigation")
+            option = st.selectbox(
+                "Choose Analysis Type:",
+                ["📄 Resume Analysis", "💼 Job Description Analysis", "🎯 Resume-Job Matching"],
+                label_visibility="collapsed"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Feature highlights
+            st.markdown('<div class="nav-card">', unsafe_allow_html=True)
+            st.markdown("### ✨ Features")
+            st.markdown("""
+            - **AI-Powered Analysis** using TF-IDF
+            - **Smart Keyword Extraction**
+            - **Similarity Scoring**
+            - **PDF Text Extraction**
+            - **Real-time Processing**
+            - **LLM Strengths/Weaknesses Analysis**
+            - **LLM Job Fit Assessment**
+            """)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Theme status
+            st.markdown('<div class="nav-card">', unsafe_allow_html=True)
+            theme_status = "🌙 Dark Mode" if st.session_state.dark_mode else "☀️ Light Mode"
+            st.markdown(f"**Current Theme:** {theme_status}")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Backend connection test
+            st.markdown('<div class="nav-card">', unsafe_allow_html=True)
+            st.markdown("### 🔧 System Status")
+            if st.button("🔍 Test Backend Connection", use_container_width=True):
+                test_backend_connection()
+            st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        # Default option when sidebar is collapsed
+        option = "📄 Resume Analysis"
     
     # Route to appropriate page
     if option == "📄 Resume Analysis":
