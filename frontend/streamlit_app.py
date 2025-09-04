@@ -374,8 +374,21 @@ def load_css():
     </style>
     """, unsafe_allow_html=True)
 
-# API Base URL - Updated to match your current deployment
-API_BASE_URL = os.getenv("API_BASE_URL", "https://ai-job-assistant.onrender.com")
+# API Base URL - Use local backend when running in same container
+# Check if we're running in production (Render) or locally
+if os.getenv("RENDER"):
+    # In production, both services run in the same container
+    API_BASE_URL = "http://localhost:8000"
+else:
+    # For local development, try environment variable or default to localhost
+    API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
+# Fallback URLs to try if the primary URL fails
+FALLBACK_URLS = [
+    "https://ai-job-assistant.onrender.com",
+    "https://nlp-ai-resume-analysis.onrender.com", 
+    "https://ai-powered-job-assistant.onrender.com"
+]
 
 def display_detailed_error(error_info, context="API Request"):
     """Display detailed error information in an expandable format"""
@@ -547,11 +560,15 @@ def test_backend_connection():
     """Test backend connection and display status"""
     st.markdown("### 🔗 Backend Connection Status")
     
+    global API_BASE_URL
+    
     with st.spinner("Testing backend connection..."):
+        # Try current API_BASE_URL first
         result = make_api_request("GET", "/health")
         
         if result["success"]:
-            st.success("✅ Backend connection successful!")
+            st.success(f"✅ Backend connection successful!")
+            st.info(f"**Connected to:** `{API_BASE_URL}`")
             health_data = result["data"]
             
             col1, col2, col3 = st.columns(3)
@@ -567,8 +584,67 @@ def test_backend_connection():
                 for endpoint in endpoints:
                     st.code(endpoint)
         else:
-            st.error("❌ Backend connection failed!")
-            display_detailed_error(result, "Backend Health Check")
+            st.error(f"❌ Backend connection failed for: `{API_BASE_URL}`")
+            
+            # Try alternative URLs
+            st.markdown("### 🔄 Trying Alternative URLs...")
+            
+            working_url = None
+            for url in FALLBACK_URLS:
+                if url == API_BASE_URL:
+                    continue  # Skip the one we already tried
+                
+                st.info(f"Testing: `{url}`")
+                
+                # Temporarily change API_BASE_URL for testing
+                original_url = API_BASE_URL
+                API_BASE_URL = url
+                
+                test_result = make_api_request("GET", "/health")
+                
+                if test_result["success"]:
+                    st.success(f"✅ Found working URL: `{url}`")
+                    working_url = url
+                    health_data = test_result["data"]
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Status", health_data.get("status", "Unknown"))
+                    with col2:
+                        st.metric("Version", health_data.get("version", "Unknown"))
+                    with col3:
+                        endpoints = health_data.get("endpoints", [])
+                        st.metric("Endpoints", len(endpoints))
+                    
+                    with st.expander("Available Endpoints"):
+                        for endpoint in endpoints:
+                            st.code(endpoint)
+                    break
+                else:
+                    st.error(f"❌ Failed: `{url}`")
+                    # Restore original URL for next iteration
+                    API_BASE_URL = original_url
+            
+            if not working_url:
+                # Restore original URL if no working URL found
+                API_BASE_URL = original_url
+                st.error("❌ No working backend URL found!")
+                
+                st.markdown("### 🔍 Debugging Information")
+                st.markdown("**Tested URLs:**")
+                for url in FALLBACK_URLS:
+                    st.code(url)
+                
+                st.markdown("### 💡 Possible Solutions")
+                st.markdown("""
+                1. **Check Render Dashboard**: Verify your service is running
+                2. **Check Service Name**: Ensure the URL matches your Render service name
+                3. **Check Deployment Status**: Service might be starting up or crashed
+                4. **Check Logs**: Look at Render logs for startup errors
+                5. **Try Manual URL**: Visit the URL directly in your browser
+                """)
+            else:
+                st.info(f"**Updated API Base URL to:** `{working_url}`")
 
 
 

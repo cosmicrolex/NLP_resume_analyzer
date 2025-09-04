@@ -47,5 +47,5 @@ RUN chmod +x start.sh
 # Expose port
 EXPOSE $PORT
 
-# Start the application directly
-CMD uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --workers 1
+# Start the application using the start script
+CMD ["python", "start_app.py"]
