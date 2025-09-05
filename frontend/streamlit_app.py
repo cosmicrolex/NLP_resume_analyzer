@@ -13,17 +13,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize sidebar state
-def init_sidebar_state():
-    if 'sidebar_state' not in st.session_state:
-        st.session_state.sidebar_state = 'expanded'
-
-def toggle_sidebar():
-    if st.session_state.sidebar_state == 'expanded':
-        st.session_state.sidebar_state = 'collapsed'
-    else:
-        st.session_state.sidebar_state = 'expanded'
-
 # Theme toggle functionality
 def init_theme():
     if 'dark_mode' not in st.session_state:
@@ -125,12 +114,16 @@ def load_css():
         z-index: 999;
     }}
     
-    /* Sidebar toggle button styling */
-    .sidebar-toggle-container {{
-        position: fixed;
-        top: 1rem;
-        left: 1rem;
-        z-index: 999;
+    /* Removed sidebar toggle button styling */
+    
+    /* Hide the show button when sidebar is visible */
+    .stSidebar:not([aria-expanded="false"]) ~ .main .show-sidebar-btn {{
+        display: none !important;
+    }}
+    
+    /* Show the button when sidebar is collapsed by Streamlit */
+    .stSidebar[aria-expanded="false"] ~ .main .show-sidebar-btn {{
+        display: flex !important;
     }}
     
     .stButton > button[data-testid="baseButton-secondary"] {{
@@ -663,27 +656,10 @@ def test_backend_connection():
             else:
                 st.info(f"**Updated API Base URL to:** `{working_url}`")
 
-
-
 def main():
-    # Initialize theme and sidebar state
+    # Initialize theme
     init_theme()
-    init_sidebar_state()
     load_css()
-    
-    # Apply sidebar collapsed class to body if needed
-    if st.session_state.sidebar_state == 'collapsed':
-        st.markdown("""
-        <script>
-        document.body.classList.add('sidebar-collapsed');
-        </script>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <script>
-        document.body.classList.remove('sidebar-collapsed');
-        </script>
-        """, unsafe_allow_html=True)
     
     # Theme toggle button in fixed position
     st.markdown('<div class="theme-toggle-container">', unsafe_allow_html=True)
@@ -693,14 +669,6 @@ def main():
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Sidebar toggle button - only show when sidebar is collapsed
-    if st.session_state.sidebar_state == 'collapsed':
-        st.markdown('<div class="sidebar-toggle-container">', unsafe_allow_html=True)
-        if st.button("📋", key="sidebar_toggle", help="Show sidebar", type="secondary"):
-            st.session_state.sidebar_state = 'expanded'
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-    
     # Main header
     st.markdown("""
     <div class="main-header">
@@ -709,54 +677,35 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Sidebar navigation - only render if not collapsed
-    if st.session_state.sidebar_state == 'expanded':
-        with st.sidebar:
-            # Hide sidebar button
-            col1, col2, col3 = st.columns([1, 1, 1])
-            with col3:
-                if st.button("✖️", key="hide_sidebar", help="Hide sidebar", type="secondary"):
-                    st.session_state.sidebar_state = 'collapsed'
-                    st.rerun()
-            
-            st.markdown('<div class="nav-card">', unsafe_allow_html=True)
-            st.markdown("### 🧭 Navigation")
-            option = st.selectbox(
-                "Choose Analysis Type:",
-                ["📄 Resume Analysis", "💼 Job Description Analysis", "🎯 Resume-Job Matching"],
-                label_visibility="collapsed"
-            )
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Feature highlights
-            st.markdown('<div class="nav-card">', unsafe_allow_html=True)
-            st.markdown("### ✨ Features")
-            st.markdown("""
-            - **AI-Powered Analysis** using TF-IDF
-            - **Smart Keyword Extraction**
-            - **Similarity Scoring**
-            - **PDF Text Extraction**
-            - **Real-time Processing**
-            - **LLM Strengths/Weaknesses Analysis**
-            - **LLM Job Fit Assessment**
-            """)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Theme status
-            st.markdown('<div class="nav-card">', unsafe_allow_html=True)
-            theme_status = "🌙 Dark Mode" if st.session_state.dark_mode else "☀️ Light Mode"
-            st.markdown(f"**Current Theme:** {theme_status}")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Backend connection test
-            st.markdown('<div class="nav-card">', unsafe_allow_html=True)
-            st.markdown("### 🔧 System Status")
-            if st.button("🔍 Test Backend Connection", use_container_width=True):
-                test_backend_connection()
-            st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        # Default option when sidebar is collapsed
-        option = "📄 Resume Analysis"
+    # Simple sidebar navigation
+    with st.sidebar:
+        st.markdown("### 🧭 Navigation")
+        option = st.selectbox(
+            "Choose Analysis Type:",
+            ["📄 Resume Analysis", "💼 Job Description Analysis", "🎯 Resume-Job Matching"],
+            label_visibility="collapsed"
+        )
+        
+        # Feature highlights
+        st.markdown("### ✨ Features")
+        st.markdown("""
+        - **AI-Powered Analysis** using TF-IDF
+        - **Smart Keyword Extraction**
+        - **Similarity Scoring**
+        - **PDF Text Extraction**
+        - **Real-time Processing**
+        - **LLM Strengths/Weaknesses Analysis**
+        - **LLM Job Fit Assessment**
+        """)
+        
+        # Theme status
+        theme_status = "🌙 Dark Mode" if st.session_state.dark_mode else "☀️ Light Mode"
+        st.markdown(f"**Current Theme:** {theme_status}")
+        
+        # Backend connection test
+        st.markdown("### 🔧 System Status")
+        if st.button("🔍 Test Backend Connection", use_container_width=True):
+            test_backend_connection()
     
     # Route to appropriate page
     if option == "📄 Resume Analysis":
@@ -767,24 +716,19 @@ def main():
         matching_page()
 
 def resume_analysis_page():
-    st.markdown('<div class="custom-card">', unsafe_allow_html=True)
     st.markdown("## 📄 Resume Analysis")
     st.markdown("Upload your resume in PDF format to extract key skills and analyze strengths/weaknesses using Groq's LLM and TF-IDF algorithms.")
-    st.markdown('</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         uploaded_file = st.file_uploader(
             "📎 Choose your resume (PDF format)",
             type="pdf",
             help="Upload your resume in PDF format for AI-powered analysis"
         )
-        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.markdown("### 📊 What you'll get:")
         st.markdown("""
         - **Top Keywords** extracted from your resume
@@ -793,7 +737,6 @@ def resume_analysis_page():
         - **Text Preview** of extracted content
         - **Strengths & Weaknesses** via LLM
         """)
-        st.markdown('</div>', unsafe_allow_html=True)
     
     if uploaded_file is not None:
         col1, col2 = st.columns(2)
@@ -863,37 +806,30 @@ def resume_analysis_page():
                         display_detailed_error(result, "Resume Analysis")  
 
 def job_description_analysis_page():
-    st.markdown('<div class="custom-card">', unsafe_allow_html=True)
     st.markdown("## 💼 Job Description Analysis")
     st.markdown("Analyze job requirements and extract key skills using AI-powered text processing.")
-    st.markdown('</div>', unsafe_allow_html=True)
     
     # Input method selection
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         input_method = st.radio(
             "Choose input method:",
             ["📝 Text Input", "📄 PDF Upload"],
             horizontal=True
         )
-        st.markdown('</div>', unsafe_allow_html=True)
     
     job_description = ""
     uploaded_jd_file = None
     
     if input_method == "📝 Text Input":
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         job_description = st.text_area(
             "📋 Job Description",
             height=200,
             placeholder="Paste the complete job description here...",
             help="Copy and paste the job description text for analysis"
         )
-        st.markdown('</div>', unsafe_allow_html=True)
     
     elif input_method == "📄 PDF Upload":
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         uploaded_jd_file = st.file_uploader(
             "📎 Upload Job Description PDF",
             type="pdf",
@@ -902,7 +838,6 @@ def job_description_analysis_page():
         )
         if uploaded_jd_file is not None:
             st.success(f"✅ File uploaded: {uploaded_jd_file.name}")
-        st.markdown('</div>', unsafe_allow_html=True)
     
     # Analysis button and logic
     can_analyze = (input_method == "📝 Text Input" and job_description.strip()) or \
@@ -970,15 +905,12 @@ def job_description_analysis_page():
                         
 
 def matching_page():
-    st.markdown('<div class="custom-card">', unsafe_allow_html=True)
     st.markdown("## 🎯 Resume-Job Matching")
     st.markdown("Upload your resume and job description to get AI-powered compatibility analysis with detailed similarity scoring and Groq LLM fit assessment.")
-    st.markdown('</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.markdown("### 📄 Upload Resume")
         uploaded_file = st.file_uploader(
             "Choose your resume (PDF)",
@@ -986,10 +918,8 @@ def matching_page():
             help="Upload your resume in PDF format",
             key="resume_uploader"
         )
-        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.markdown("### 💼 Job Description")
         
         jd_input_method = st.radio(
@@ -1015,7 +945,6 @@ def matching_page():
                 type="pdf",
                 key="matching_jd_pdf"
             )
-        st.markdown('</div>', unsafe_allow_html=True)
     
     # Check if both inputs are provided
     resume_ready = uploaded_file is not None
@@ -1158,12 +1087,10 @@ def matching_page():
                         st.error(f"❌ Connection error: {str(e)}")
     
     else:
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         if not resume_ready:
             st.info("📄 Please upload your resume to continue")
         elif not jd_ready:
             st.info("💼 Please provide a job description to continue")
-        st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

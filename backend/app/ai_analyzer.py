@@ -6,12 +6,26 @@ import json
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Load environment variables from root directory
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+# Try to load environment variables from different possible locations
+env_paths = [
+    os.path.join(os.path.dirname(__file__), '..', '..', '.env'),  # Root directory
+    os.path.join(os.path.dirname(__file__), '..', '.env'),        # Backend directory
+    os.path.join(os.path.dirname(__file__), '.env'),              # Current directory
+]
+
+for env_path in env_paths:
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        break
+
+# Get API key from environment variable
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    raise ValueError("GROQ_API_KEY environment variable is not set. Please set it in your environment or .env file.")
 
 # Initialize Groq client (using OpenAI SDK compatibility)
 client = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
+    api_key=api_key,
     base_url="https://api.groq.com/openai/v1"
 )
 
