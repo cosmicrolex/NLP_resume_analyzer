@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import os
+import time
 from io import BytesIO
 import json
 
@@ -400,6 +401,14 @@ FALLBACK_URLS = [
     "https://ai-powered-job-assistant.onrender.com"
 ]
 
+def check_api_key_required():
+    """Check if API key is required and show warning if missing"""
+    if not st.session_state.get('groq_api_key', ''):
+        st.error("🔑 **GROQ API Key Required**: Please enter your GROQ API key above to use AI-powered analysis features.")
+        st.info("💡 Get your free API key at: https://console.groq.com/")
+        return False
+    return True
+
 def display_detailed_error(error_info, context="API Request"):
     """Display detailed error information in an expandable format"""
     st.error(f"❌ {context} Failed")
@@ -481,13 +490,25 @@ def make_api_request(method, endpoint, files=None, data=None, timeout=30):
     # Store timestamp for debugging
     st.session_state.last_error_time = time.strftime("%Y-%m-%d %H:%M:%S")
     
+    # Include GROQ API key if available
+    groq_api_key = st.session_state.get('groq_api_key', '')
+    
     try:
         url = f"{API_BASE_URL}{endpoint}"
         
         if method.upper() == "POST":
+            # Add API key to data for POST requests
+            if data is None:
+                data = {}
+            if groq_api_key:
+                data['groq_api_key'] = groq_api_key
             response = requests.post(url, files=files, data=data, timeout=timeout)
         elif method.upper() == "GET":
-            response = requests.get(url, timeout=timeout)
+            # Add API key to params for GET requests
+            params = {}
+            if groq_api_key:
+                params['groq_api_key'] = groq_api_key
+            response = requests.get(url, params=params, timeout=timeout)
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
         
@@ -672,10 +693,47 @@ def main():
     # Main header
     st.markdown("""
     <div class="main-header">
-        <h1>🤖 AI-Powered Job Assistant</h1>
+        <h1>AI-Powered Resume Analyzer</h1>
         <p>Intelligent resume analysis and job matching powered by machine learning and Groq LLM</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # API Key Input Section
+    st.markdown("### 🔑 GROQ API Configuration")
+    col1, col2, col3 = st.columns([3, 0.5, 0.5])
+    with col1:
+        groq_api_key = st.text_input(
+            "Enter your GROQ API Key",
+            type="password",
+            placeholder="Enter your GROQ API key here...",
+            help="Get your API key from https://console.groq.com/",
+            key="groq_api_key_input"
+        )
+    
+    with col2:
+        # Enter button to set the API key
+        if st.button("🔑 Set", key="set_api_key", help="Click to set the API key", use_container_width=True):
+            if groq_api_key.strip():
+                st.session_state.groq_api_key = groq_api_key.strip()
+                st.success("API Key Set!")
+                st.rerun()
+            else:
+                st.error("Please enter a valid API key")
+        
+        # Auto-store in session state on input change (for keyboard enter)
+        if groq_api_key and groq_api_key != st.session_state.get('groq_api_key', ''):
+            st.session_state.groq_api_key = groq_api_key
+        elif 'groq_api_key' not in st.session_state:
+            st.session_state.groq_api_key = ""
+    
+    with col3:
+        if st.session_state.get('groq_api_key', ''):
+            st.success("✅ API Key Set")
+        else:
+            st.warning("⚠️ No API Key")
+    
+    if not st.session_state.get('groq_api_key', ''):
+        st.info("💡 **Note:** You need a GROQ API key to use AI-powered analysis features. Get one free at https://console.groq.com/")
     
     # Simple sidebar navigation
     with st.sidebar:
@@ -742,6 +800,9 @@ def resume_analysis_page():
         col1, col2 = st.columns(2)
         with col2:
             if st.button("🚀 Analyze Resume", type="primary", use_container_width=True):
+                if not check_api_key_required():
+                    return
+                
                 with st.spinner("🔍 Analyzing your resume with AI..."):
                     files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
                     result = make_api_request("POST", "/analyze-resume/", files=files)
@@ -753,7 +814,6 @@ def resume_analysis_page():
                         col1, col2 = st.columns(2)
                         
                         with col1:
-                            st.markdown('<div class="custom-card">', unsafe_allow_html=True)
                             st.markdown("### 📊 Key Skills & Keywords")
                             if "tfidf_analysis" in data and data["tfidf_analysis"]:
                                 keywords_df = []
@@ -763,44 +823,61 @@ def resume_analysis_page():
                                         "📈 TF-IDF Score": f"{keyword['score']:.4f}"
                                     })
                                 st.dataframe(keywords_df, use_container_width=True, hide_index=True)
-                            st.markdown('</div>', unsafe_allow_html=True)
                         
                         with col2:
-                            st.markdown('<div class="custom-card">', unsafe_allow_html=True)
                             st.markdown("### 📝 Extracted Text Preview")
                             extracted_text = data.get("extracted_text", "")
                             preview_text = extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text
                             st.text_area("Extracted Text Preview", preview_text, height=300, label_visibility="collapsed")
-                            st.markdown('</div>', unsafe_allow_html=True)
                         
-                        # LLM Strengths and Weaknesses
-                        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-                        st.markdown("### 💪 Strengths & Weaknesses (Groq LLM)")
+                        # LLM Weaknesses and Suggestions
+                        st.markdown("### 💪 Weaknesses & Suggestions (Groq LLM)")
                         if "llm_strengths_weaknesses" in data and data["llm_strengths_weaknesses"]:
                             try:
                                 sw = data["llm_strengths_weaknesses"]
+                                
+                                # Check if there's an error in the response
+                                if isinstance(sw, dict) and "error" in sw:
+                                    st.error(f"AI Analysis Error: {sw['error']}")
+                                    return
+                                
                                 if isinstance(sw, str):
                                     sw = json.loads(sw)
 
                                 if isinstance(sw, dict):
-                                    st.markdown("**Strengths:**")
-                                    for s in sw.get("strengths", []):
-                                        st.markdown(f"- {s}")
-                                    st.markdown("**Weaknesses:**")
-                                    for w in sw.get("weaknesses", []):
-                                        st.markdown(f"- {w}")
+                                    # Display deficiencies as weaknesses
+                                    if "deficiencies" in sw and sw["deficiencies"]:
+                                        st.markdown("**Weaknesses:**")
+                                        for d in sw["deficiencies"]:
+                                            if d and d.strip():  # Only show non-empty items
+                                                st.markdown(f"- {d}")
+                                    
+                                    # Display suggestions for improvement
+                                    if "suggestions" in sw and sw["suggestions"]:
+                                        st.markdown("**Suggestions for Improvement:**")
+                                        for s in sw["suggestions"]:
+                                            if s and s.strip():  # Only show non-empty items
+                                                st.markdown(f"- {s}")
+                                    
+                                    # Display critical gaps
+                                    if "critical_gaps" in sw and sw["critical_gaps"]:
+                                        st.markdown("**Critical Gaps:**")
+                                        for c in sw["critical_gaps"]:
+                                            if c and c.strip():  # Only show non-empty items
+                                                st.markdown(f"- {c}")
 
+                                    # Show raw response if parsing issues occurred
                                     if "raw_response" in sw:
-                                        with st.expander("🔍 Raw AI Response"):
+                                        with st.expander("🔍 Raw AI Response (for debugging)"):
                                             st.text(sw["raw_response"])
                                 else:
+                                    st.warning("Unexpected response format from AI")
                                     st.write(sw)
                             except (json.JSONDecodeError, TypeError) as e:
                                 st.error(f"Error parsing LLM response: {str(e)}")
                                 st.write(data["llm_strengths_weaknesses"])
                         else:
-                            st.warning("⚠️ No LLM analysis available. Check GROQ_API_KEY.")
-                        st.markdown('</div>', unsafe_allow_html=True)
+                            st.warning("⚠️ No LLM analysis available. Please check your GROQ API key.")
                     
                     else:
                         display_detailed_error(result, "Resume Analysis")  
@@ -847,6 +924,9 @@ def job_description_analysis_page():
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             if st.button("🔍 Analyze Job Description", type="primary", use_container_width=True):
+                if not check_api_key_required():
+                    return
+                
                 with st.spinner("🤖 AI is analyzing the job description..."):
                     try:
                         if input_method == "📝 Text Input":
@@ -955,16 +1035,28 @@ def matching_page():
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             if st.button("🚀 Analyze Compatibility", type="primary", use_container_width=True):
+                if not check_api_key_required():
+                    return
+                
                 with st.spinner("🤖 AI is analyzing compatibility..."):
                     try:
                         files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
                         
                         if jd_input_method == "📝 Text":
                             data = {"job_description": job_description}
+                            # Include GROQ API key
+                            groq_api_key = st.session_state.get('groq_api_key', '')
+                            if groq_api_key:
+                                data['groq_api_key'] = groq_api_key
                             response = requests.post(f"{API_BASE_URL}/match-resume-job/", files=files, data=data)
                         else:
                             files["jd_file"] = (uploaded_jd_file.name, uploaded_jd_file.getvalue(), "application/pdf")
-                            response = requests.post(f"{API_BASE_URL}/match-resume-job-pdf/", files=files)
+                            # Include GROQ API key for PDF case
+                            data = {}
+                            groq_api_key = st.session_state.get('groq_api_key', '')
+                            if groq_api_key:
+                                data['groq_api_key'] = groq_api_key
+                            response = requests.post(f"{API_BASE_URL}/match-resume-job-pdf/", files=files, data=data)
                         
                         if response.status_code == 200:
                             result = response.json()

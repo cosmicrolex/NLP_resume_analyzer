@@ -18,6 +18,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 from backend.utils.pdf_parser import textextractionfunction
 from tfidf_analyzer import analyze_resume_with_tfidf, analyze_job_description_with_tfidf, calculate_resume_job_similarity, comprehensive_resume_job_analysis
+from ai_analyzer import analyze_resume_with_ai
 
 app = FastAPI()
 app.add_middleware(
@@ -31,7 +32,7 @@ OUTPUT_DIR = os.path.join(UTILS_DIR, 'output')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 @app.post("/analyze-resume/")
-async def analyze_resume(file: UploadFile = File(...)):
+async def analyze_resume(file: UploadFile = File(...), groq_api_key: str = Form(None)):
     try:
         file_path = os.path.join(OUTPUT_DIR, file.filename)
         with open(file_path, "wb") as f:
@@ -40,6 +41,16 @@ async def analyze_resume(file: UploadFile = File(...)):
         output_path = os.path.join(OUTPUT_DIR, f"{file.filename}.txt")
         resume_text = textextractionfunction(file_path, output_path)
         tfidf_result = analyze_resume_with_tfidf(resume_text)
+        
+        # Add AI analysis if API key is provided
+        llm_analysis = None
+        if groq_api_key:
+            try:
+                llm_analysis = analyze_resume_with_ai(resume_text, groq_api_key=groq_api_key)
+            except Exception as ai_error:
+                print(f"AI analysis failed: {str(ai_error)}")
+                llm_analysis = {"error": f"AI analysis failed: {str(ai_error)}"}
+        
         try:
             os.remove(file_path)
             os.remove(output_path)
@@ -48,7 +59,7 @@ async def analyze_resume(file: UploadFile = File(...)):
         return JSONResponse(content={
             "extracted_text": resume_text,
             "tfidf_analysis": tfidf_result["top_keywords"],
-            "llm_strengths_weaknesses": tfidf_result.get("llm_strengths_weaknesses")
+            "llm_strengths_weaknesses": llm_analysis
         })
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Processing failed: {str(e)}"})
@@ -67,7 +78,8 @@ async def analyze_job_description(job_description: str = Form(...)):
 @app.post("/match-resume-job/")
 async def match_resume_job(
     file: UploadFile = File(...),
-    job_description: str = Form(...)
+    job_description: str = Form(...),
+    groq_api_key: str = Form(None)
 ):
     try:
         # Extract resume text
@@ -81,6 +93,15 @@ async def match_resume_job(
         # Perform comprehensive analysis
         analysis_result = comprehensive_resume_job_analysis(resume_text, job_description)
         
+        # Add AI fit assessment if API key is provided
+        llm_fit_assessment = None
+        if groq_api_key:
+            try:
+                llm_fit_assessment = analyze_resume_with_ai(resume_text, job_description, groq_api_key=groq_api_key)
+            except Exception as ai_error:
+                print(f"AI fit assessment failed: {str(ai_error)}")
+                llm_fit_assessment = {"error": f"AI fit assessment failed: {str(ai_error)}"}
+        
         # Cleanup
         try:
             os.remove(file_path)
@@ -92,7 +113,7 @@ async def match_resume_job(
             "resume_text": resume_text,
             "job_description_text": job_description,
             "analysis": analysis_result,
-            "llm_fit_assessment": analysis_result.get("llm_fit_assessment")
+            "llm_fit_assessment": llm_fit_assessment
         })
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Processing failed: {str(e)}"})
@@ -130,7 +151,8 @@ async def analyze_job_description_pdf(file: UploadFile = File(...)):
 @app.post("/match-resume-job-pdf/")
 async def match_resume_job_pdf(
     file: UploadFile = File(...),
-    jd_file: UploadFile = File(...)
+    jd_file: UploadFile = File(...),
+    groq_api_key: str = Form(None)
 ):
     try:
         # Extract resume text
@@ -152,6 +174,15 @@ async def match_resume_job_pdf(
         # Perform comprehensive analysis
         analysis_result = comprehensive_resume_job_analysis(resume_text, job_description_text)
         
+        # Add AI fit assessment if API key is provided
+        llm_fit_assessment = None
+        if groq_api_key:
+            try:
+                llm_fit_assessment = analyze_resume_with_ai(resume_text, job_description_text, groq_api_key=groq_api_key)
+            except Exception as ai_error:
+                print(f"AI fit assessment failed: {str(ai_error)}")
+                llm_fit_assessment = {"error": f"AI fit assessment failed: {str(ai_error)}"}
+        
         # Cleanup files
         try:
             os.remove(resume_file_path)
@@ -165,7 +196,7 @@ async def match_resume_job_pdf(
             "resume_text": resume_text,
             "job_description_text": job_description_text,
             "analysis": analysis_result,
-            "llm_fit_assessment": analysis_result.get("llm_fit_assessment")
+            "llm_fit_assessment": llm_fit_assessment
         })
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Processing failed: {str(e)}"})

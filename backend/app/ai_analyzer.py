@@ -1,12 +1,12 @@
 
-# This module handles AI analysis, loading the API key from .env and sending the resume text (and optional job description) to Groq's API.
+# This module handles AI analysis, dynamically using user-provided GROQ API keys
 
 import os
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Try to load environment variables from different possible locations
+# Optional: Try to load environment variables as fallback (but don't require them)
 env_paths = [
     os.path.join(os.path.dirname(__file__), '..', '..', '.env'),  # Root directory
     os.path.join(os.path.dirname(__file__), '..', '.env'),        # Backend directory
@@ -18,28 +18,31 @@ for env_path in env_paths:
         load_dotenv(env_path)
         break
 
-# Get API key from environment variable
-api_key = os.getenv("GROQ_API_KEY")
-if not api_key:
-    raise ValueError("GROQ_API_KEY environment variable is not set. Please set it in your environment or .env file.")
-
-# Initialize Groq client (using OpenAI SDK compatibility)
-client = OpenAI(
-    api_key=api_key,
-    base_url="https://api.groq.com/openai/v1"
-)
-
-def analyze_resume_with_ai(resume_text, job_description=None):
+def analyze_resume_with_ai(resume_text, job_description=None, groq_api_key=None):
     """
     Analyze resume text using an AI model to identify deficiencies and provide improvement suggestions.
     
     Args:
         resume_text (str): Extracted resume text
         job_description (str, optional): Job description text for context
+        groq_api_key (str): User-provided GROQ API key for dynamic authentication
     
     Returns:
         dict: AI-generated insights or error message
     """
+    # Validate API key
+    if not groq_api_key:
+        raise ValueError("GROQ API key is required. Please provide your API key.")
+    
+    # Initialize Groq client with user-provided API key
+    try:
+        client = OpenAI(
+            api_key=groq_api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
+    except Exception as e:
+        raise ValueError(f"Failed to initialize GROQ client: {str(e)}")
+    
     try:
         # Define the base prompt
         prompt = """
@@ -54,10 +57,14 @@ def analyze_resume_with_ai(resume_text, job_description=None):
 
         {job_description_section}
 
-        Output your response in a structured JSON format with the following keys:
-        - deficiencies: List of identified weaknesses (e.g., ["Missing technical skills", "No extracurricular activities"]).
-        - suggestions: List of specific improvement suggestions (e.g., ["Add Python and SQL skills", "Include volunteer work"]).
-        - critical_gaps: List of critical missing elements that could prevent job success.
+        IMPORTANT: You MUST respond with a valid JSON object in exactly this format:
+        {{
+            "deficiencies": ["weakness 1", "weakness 2", "weakness 3"],
+            "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"],
+            "critical_gaps": ["gap 1", "gap 2", "gap 3"]
+        }}
+
+        Do not include any text before or after the JSON object. Only return the JSON.
         """
         
         # Include job description if provided
@@ -75,25 +82,89 @@ def analyze_resume_with_ai(resume_text, job_description=None):
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",  # Use Groq's model
             messages=[
-                {"role": "system", "content": "You are a professional career coach with expertise in resume analysis."},
+                {"role": "system", "content": "You are a professional career coach with expertise in resume analysis. Always respond with valid JSON format only, no additional text."},
                 {"role": "user", "content": formatted_prompt}
             ],
-            temperature=0.7,
+            temperature=0.3,  # Lower temperature for more consistent JSON output
             max_tokens=1000
         )
 
         # Parse and return the response as a dictionary
-        response_content = response.choices[0].message.content
+        response_content = response.choices[0].message.content.strip()
+        
+        # Clean up the response content to extract JSON
+        if response_content.startswith('```json'):
+            response_content = response_content.replace('```json', '').replace('```', '').strip()
+        elif response_content.startswith('```'):
+            response_content = response_content.replace('```', '').strip()
+        
         try:
             # Try to parse as JSON first
             ai_insights = json.loads(response_content)
+            
+            # Validate that required keys exist
+            if not isinstance(ai_insights, dict):
+                raise ValueError("Response is not a dictionary")
+            
+            # Ensure all required keys exist with default values
+            ai_insights.setdefault("deficiencies", ["No significant deficiencies identified"])
+            ai_insights.setdefault("suggestions", ["Continue developing existing skills"])
+            ai_insights.setdefault("critical_gaps", ["No critical gaps identified"])
+            
             return ai_insights
-        except json.JSONDecodeError:
-            # If JSON parsing fails, return a structured response
+            
+        except (json.JSONDecodeError, ValueError) as e:
+            # If JSON parsing fails, try to extract useful information from the text
+            print(f"JSON parsing failed: {str(e)}")
+            print(f"Raw response: {response_content}")
+            
+            # Try to create a structured response from unstructured text
+            lines = response_content.split('\n')
+            deficiencies = []
+            suggestions = []
+            critical_gaps = []
+            
+            current_section = None
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Check for section headers
+                if any(keyword in line.lower() for keyword in ['deficienc', 'weakness', 'weak']):
+                    current_section = 'deficiencies'
+                    continue
+                elif any(keyword in line.lower() for keyword in ['suggestion', 'improve', 'recommend']):
+                    current_section = 'suggestions'
+                    continue
+                elif any(keyword in line.lower() for keyword in ['critical', 'gap', 'missing']):
+                    current_section = 'critical_gaps'
+                    continue
+                
+                # Extract bullet points or numbered items
+                if line.startswith(('-', '•', '*')) or line[0:2].strip().isdigit():
+                    cleaned_line = line.lstrip('-•*0123456789. ').strip()
+                    if cleaned_line:
+                        if current_section == 'deficiencies':
+                            deficiencies.append(cleaned_line)
+                        elif current_section == 'suggestions':
+                            suggestions.append(cleaned_line)
+                        elif current_section == 'critical_gaps':
+                            critical_gaps.append(cleaned_line)
+            
+            # If we couldn't extract structured data, provide the raw response
+            if not deficiencies and not suggestions and not critical_gaps:
+                return {
+                    "deficiencies": ["AI response could not be parsed properly"],
+                    "suggestions": ["Please try again or check your API key"],
+                    "critical_gaps": ["Response parsing failed"],
+                    "raw_response": response_content
+                }
+            
             return {
-                "deficiencies": ["Unable to parse structured response"],
-                "suggestions": ["Please check the AI model response format"],
-                "critical_gaps": ["Response parsing error"],
+                "deficiencies": deficiencies if deficiencies else ["No specific deficiencies identified"],
+                "suggestions": suggestions if suggestions else ["Continue professional development"],
+                "critical_gaps": critical_gaps if critical_gaps else ["No critical gaps identified"],
                 "raw_response": response_content
             }
 
