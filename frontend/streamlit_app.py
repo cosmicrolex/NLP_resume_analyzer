@@ -700,7 +700,7 @@ def main():
     
     # API Key Input Section
     st.markdown("### 🔑 GROQ API Configuration")
-    col1, col2, col3 = st.columns([3, 0.5, 0.5])
+    col1, col2 = st.columns([3, 1])
     with col1:
         groq_api_key = st.text_input(
             "Enter your GROQ API Key",
@@ -709,24 +709,13 @@ def main():
             help="Get your API key from https://console.groq.com/",
             key="groq_api_key_input"
         )
-    
-    with col2:
-        # Enter button to set the API key
-        if st.button("🔑 Set", key="set_api_key", help="Click to set the API key", use_container_width=True):
-            if groq_api_key.strip():
-                st.session_state.groq_api_key = groq_api_key.strip()
-                st.success("API Key Set!")
-                st.rerun()
-            else:
-                st.error("Please enter a valid API key")
-        
-        # Auto-store in session state on input change (for keyboard enter)
-        if groq_api_key and groq_api_key != st.session_state.get('groq_api_key', ''):
+        # Store in session state
+        if groq_api_key:
             st.session_state.groq_api_key = groq_api_key
         elif 'groq_api_key' not in st.session_state:
             st.session_state.groq_api_key = ""
     
-    with col3:
+    with col2:
         if st.session_state.get('groq_api_key', ''):
             st.success("✅ API Key Set")
         else:

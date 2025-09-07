@@ -1,22 +1,45 @@
-import threading
-import subprocess
 import os
+import subprocess
+import sys
+from pathlib import Path
 
-def run_streamlit():
-    # Start Streamlit on port 10000 (Render's required port)
-    subprocess.run(["streamlit", "run", "frontend/streamlit_app.py", "--server.port", "10000", "--server.address", "0.0.0.0"])
-
-def run_fastapi():
-    # Start FastAPI with uvicorn on port 8000
-    subprocess.run(["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"])
+def main():
+    """
+    Start the AI Job Assistant application.
+    For Render deployment, this runs only the FastAPI backend.
+    Streamlit frontend can be accessed separately or integrated.
+    """
+    
+    # Set up environment
+    port = int(os.environ.get("PORT", 10000))
+    host = "0.0.0.0"
+    
+    # Ensure output directory exists
+    output_dir = Path("backend/utils/output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    print(f"🚀 Starting AI Job Assistant on {host}:{port}")
+    
+    # For Render deployment, start FastAPI only
+    if os.environ.get("RENDER"):
+        print("📡 Render deployment detected - starting FastAPI backend only")
+        subprocess.run([
+            sys.executable, "-m", "uvicorn", 
+            "backend.app.main:app",
+            "--host", host,
+            "--port", str(port),
+            "--workers", "1"
+        ])
+    else:
+        # Local development - you can run both if needed
+        print("💻 Local development - starting FastAPI backend")
+        subprocess.run([
+            sys.executable, "-m", "uvicorn", 
+            "backend.app.main:app",
+            "--host", host,
+            "--port", str(port),
+            "--reload"
+        ])
 
 if __name__ == "__main__":
-    # Start both servers in separate threads
-    streamlit_thread = threading.Thread(target=run_streamlit)
-    fastapi_thread = threading.Thread(target=run_fastapi)
-    
-    streamlit_thread.start()
-    fastapi_thread.start()
-    
-    streamlit_thread.join()
-    fastapi_thread.join()
+    main()
