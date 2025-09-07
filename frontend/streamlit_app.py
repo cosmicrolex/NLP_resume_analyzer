@@ -388,7 +388,7 @@ def load_css():
 # API Base URL - Use local backend when running in same container
 # Check if we're running in production (Render) or locally
 if os.getenv("RENDER"):
-    # In production, both services run in the same container
+    # In production on Render, FastAPI runs on localhost:8000
     API_BASE_URL = "http://localhost:8000"
 else:
     # For local development, connect to deployed backend by default
@@ -396,6 +396,7 @@ else:
 
 # Fallback URLs to try if the primary URL fails
 FALLBACK_URLS = [
+    "http://localhost:8000",  # Local FastAPI when running together
     "https://nlp-resume-analyzer.onrender.com",
     "https://ai-job-assistant.onrender.com",
     "https://nlp-ai-resume-analysis.onrender.com", 
