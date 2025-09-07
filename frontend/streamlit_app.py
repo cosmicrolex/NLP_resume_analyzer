@@ -391,11 +391,12 @@ if os.getenv("RENDER"):
     # In production, both services run in the same container
     API_BASE_URL = "http://localhost:8000"
 else:
-    # For local development, try environment variable or default to localhost
-    API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+    # For local development, connect to deployed backend by default
+    API_BASE_URL = os.getenv("API_BASE_URL", "https://nlp-resume-analyzer.onrender.com")
 
 # Fallback URLs to try if the primary URL fails
 FALLBACK_URLS = [
+    "https://nlp-resume-analyzer.onrender.com",
     "https://ai-job-assistant.onrender.com",
     "https://nlp-ai-resume-analysis.onrender.com", 
     "https://ai-powered-job-assistant.onrender.com"

@@ -11,21 +11,10 @@ from simple_tfidf import SimpleTFIDF
 # Load environment variables from root directory
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
-# Initialize Groq client (uses OpenAI SDK compatibility)
-groq_api_key = os.getenv("GROQ_API_KEY")
-if groq_api_key:
-    try:
-        client = OpenAI(
-            api_key=groq_api_key,
-            base_url="https://api.groq.com/openai/v1"
-        )
-        print("✅ Groq client initialized successfully")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Groq client: {str(e)}")
-        client = None
-else:
-    print("⚠️ GROQ_API_KEY not found in environment variables")
-    client = None
+# Note: GROQ client is initialized dynamically with user-provided API keys
+# No static client initialization needed since we use dynamic API keys
+client = None  # Placeholder for dynamic client initialization
+print("✅ GROQ client will be initialized dynamically with user-provided API keys")
 
 # Download NLTK data
 nltk.download('stopwords', quiet=True)
